@@ -17,6 +17,7 @@
     - `tests/unit/test_logic.py`: 游戏逻辑测试
   - `tests/integration/`: 集成测试
     - `tests/integration/test_flow.py`: 游戏流程测试
+  - `tests/test_coverage.py`: 代码覆盖率测试
   - `tests/TEST_PLAN.md`: 测试计划文档
 
 ## 功能特性
@@ -88,7 +89,7 @@
 
 ## 测试说明
 
-项目提供了两种测试方式：
+项目提供了多种测试方式：
 
 ### 1. 简单集成测试 (`tests/integration/test_flow.py`)
 用于快速验证核心游戏流程，模拟真实用户操作：
@@ -112,11 +113,22 @@ pytest tests/unit/test_logic.py::TestLogic
 pytest tests/unit/test_logic.py::TestLogic::test_create_room
 ```
 
-### 测试覆盖率
+### 3. 代码覆盖率测试
 ```bash
-# 运行测试并生成覆盖率报告
-pytest --cov=app tests/unit/
+# 运行覆盖率测试并生成报告
+pytest tests/test_coverage.py --cov=app --cov-report=term-missing
+
+# 生成HTML格式的覆盖率报告
+pytest tests/test_coverage.py --cov=app --cov-report=html
+
+# 查看覆盖率报告
+open htmlcov/index.html
+
+# 运行所有测试（单元测试+覆盖率测试）并生成覆盖率报告
+pytest tests/unit/ tests/test_coverage.py --cov=app --cov-report=term
 ```
+
+当前代码覆盖率约为 68%，主要覆盖了核心游戏逻辑功能。
 
 ## 游戏命令
 
