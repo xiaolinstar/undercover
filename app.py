@@ -52,11 +52,22 @@ GAME_INSTRUCTIONS = """谁是卧底游戏玩法：
    - 9-12人：3个卧底
 2. 创建房间后，其他玩家通过房间号加入
 3. 房主输入"开始游戏"分配词语和角色
-4. 玩家在线下进行描述和讨论
-5. 房主通过"t+序号"投票淘汰玩家
-6. 游戏结束条件：
+4. 每个玩家只能看到自己的词语，不知道自己是平民还是卧底
+5. 玩家在线下进行描述和讨论
+6. 房主通过"t+序号"投票淘汰玩家
+7. 游戏结束条件：
    - 所有卧底被淘汰：平民获胜
-   - 卧底数量≥平民数量：卧底获胜"""
+   - 卧底数量≥平民数量：卧底获胜
+
+游戏命令：
+- 谁是卧底 - 查看游戏玩法和帮助信息
+- 创建房间 - 创建新的游戏房间
+- 加入房间+房间号 - 加入指定房间（例如：加入房间1234）
+- 开始游戏 - 房主开始游戏（至少3人）
+- 查看状态 - 查看当前房间状态和个人信息
+- 查看词语 - 查看自己的词语（游戏开始后可用）
+- t+序号 - 房主投票给指定玩家（例如：t1）
+- 帮助 - 显示此帮助信息"""
 
 
 @app.route('/hello', methods=['GET'])
@@ -230,19 +241,11 @@ def wechat_response():
         elif msg_type == 'event':
             event = root.find('Event').text
             if event == 'subscribe':
-                response_content = "欢迎关注！请输入'创建房间'来创建一个新的谁是卧底游戏房间，或输入'加入房间+房间号'来加入现有房间。\n\n回复'谁是卧底'查看游戏玩法"
+                response_content = "欢迎关注！请输入'谁是卧底'查看游戏玩法和帮助信息"
             elif event == 'CLICK':
                 event_key = root.find('EventKey').text
                 if event_key == 'WHO_IS_UNDERCOVER':
                     response_content = GAME_INSTRUCTIONS
-                elif event_key == 'CREATE_ROOM':
-                    response_content = create_room(from_user)
-                elif event_key == 'JOIN_ROOM':
-                    response_content = "请输入'加入房间+房间号'来加入指定房间"
-                elif event_key == 'SHOW_STATUS':
-                    response_content = show_status(from_user)
-                elif event_key == 'CONTACT':
-                    response_content = "如有问题请联系管理员"
                 else:
                     response_content = "暂不支持此菜单选项"
             else:
@@ -285,6 +288,8 @@ def handle_text_message(user_id, content):
         return start_game(user_id)
     elif content == '查看状态':
         return show_status(user_id)
+    elif content == '查看词语':
+        return show_word(user_id)
     elif content.startswith('t'):
         # 房主投票，格式为 t+序号
         try:
@@ -420,12 +425,10 @@ def start_game(user_id):
     for player in room['players']:
         if player in room['undercovers']:
             word = room['words']['undercover']
-            role = "卧底"
         else:
             word = room['words']['civilian']
-            role = "平民"
         
-        send_message(player, f"游戏开始！\n词语类别：{category}\n您的身份：{role}\n您的词语：{word}\n线下进行描述和讨论，结束后由房主进行最终投票决定胜负")
+        send_message(player, f"您的词语：{word}\n请根据您的词语进行描述，注意不要暴露自己的身份\n线下进行描述和讨论，结束后由房主进行投票")
     
     # 特别提醒房主
     send_message(room['creator'], f"\n您是房主，请在线下游戏结束后，通过't+序号'的方式来决定被淘汰的玩家")
@@ -542,15 +545,12 @@ def show_status(user_id):
         nickname = player_data['nickname'] if player_data else f'玩家{i+1}'
         if player == room['creator']:
             nickname += "(房主)"
-        if player in room.get('undercovers', []):
-            nickname += "(卧底)"
         if player in room.get('eliminated', []):
             nickname += "(已淘汰)"
         status_text += f"\n{i+1}. {nickname}"
     
     if room['status'] == 'playing':
         status_text += f"\n\n当前轮次：第{room['current_round']}轮"
-        status_text += f"\n卧底人数：{len(room.get('undercovers', []))}"
         status_text += f"\n已淘汰：{len(room.get('eliminated', []))}人"
         
         # 如果是房主，提示投票方式
@@ -560,19 +560,40 @@ def show_status(user_id):
     return status_text
 
 
+def show_word(user_id):
+    """
+    显示玩家的词语信息
+    """
+    # 获取用户信息
+    user_data = get_user(user_id)
+    if not user_data or not user_data.get('current_room'):
+        return "您不在任何房间中"
+    
+    room_id = user_data['current_room']
+    room = get_room(room_id)
+    
+    # 检查游戏是否已开始
+    if room['status'] != 'playing':
+        return "游戏尚未开始，无法查看词语信息"
+    
+    # 检查用户是否在房间中
+    if user_id not in room['players']:
+        return "您不在当前房间中"
+    
+    # 获取用户的词语
+    if user_id in room['undercovers']:
+        word = room['words']['undercover']
+    else:
+        word = room['words']['civilian']
+    
+    return f"您的词语：{word}\n请根据您的词语进行描述，注意不要暴露自己的身份"
+
+
 def show_help():
     """
     显示帮助信息
     """
-    help_text = """谁是卧底游戏命令：
-1. 谁是卧底 - 查看游戏玩法
-2. 创建房间 - 创建新的游戏房间
-3. 加入房间+房间号 - 加入指定房间（例如：加入房间1234）
-4. 开始游戏 - 房主开始游戏（至少3人）
-5. 查看状态 - 查看当前房间状态和个人信息
-6. t+序号 - 房主投票给指定玩家（例如：t1）
-7. 帮助 - 显示此帮助信息"""
-    return help_text
+    return GAME_INSTRUCTIONS
 
 
 def notify_players(room_id, message, exclude=None):
@@ -587,10 +608,46 @@ def notify_players(room_id, message, exclude=None):
 
 def send_message(user_id, message):
     """
-    发送消息给指定用户（模拟实现）
-    在实际应用中，这里需要调用微信API发送客服消息
+    发送消息给指定用户（通过微信客服消息接口）
+    根据微信官方文档：https://developers.weixin.qq.com/doc/service/api/customer/message/api_sendcustommessage.html
     """
-    print(f"发送给 {user_id} 的消息: {message}")
+    try:
+        # 获取access_token
+        access_token = get_access_token()
+        if not access_token:
+            app.logger.error("Failed to get access token for sending message")
+            # 如果无法获取access_token，回退到打印消息
+            print(f"发送给 {user_id} 的消息: {message}")
+            return False
+        
+        # 构造发送客服消息的URL
+        url = f"https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token={access_token}"
+        
+        # 构造消息数据
+        message_data = {
+            "touser": user_id,
+            "msgtype": "text",
+            "text": {
+                "content": message
+            }
+        }
+        
+        # 发送POST请求
+        response = requests.post(url, json=message_data)
+        result = response.json()
+        
+        # 检查发送结果
+        if result.get('errcode') == 0:
+            return True
+        else:
+            app.logger.error(f"Failed to send message to {user_id}: {result}")
+            return False
+            
+    except Exception as e:
+        app.logger.error(f"Error sending message to {user_id}: {e}")
+        # 如果发送失败，回退到打印消息
+        print(f"发送给 {user_id} 的消息: {message}")
+        return False
 
 
 def get_room(room_id):

@@ -160,7 +160,7 @@ class TestCoverage:
         
         # 测试"帮助"命令
         result = handle_text_message("test_user", "帮助")
-        assert "谁是卧底游戏命令" in result
+        assert "谁是卧底游戏玩法" in result
         
         # 测试未知命令
         result = handle_text_message("test_user", "未知命令")
@@ -173,7 +173,7 @@ class TestCoverage:
     def test_show_help_coverage(self):
         """测试显示帮助功能"""
         result = show_help()
-        assert "谁是卧底游戏命令" in result
+        assert "谁是卧底游戏玩法" in result
         assert "创建房间" in result
         assert "加入房间" in result
     
