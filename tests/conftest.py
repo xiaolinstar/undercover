@@ -1,25 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
-pytest配置文件
+测试配置文件
 """
 
-import pytest
-import redis
+import sys
 import os
+import pytest
+
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 
 @pytest.fixture(scope="session")
-def redis_client():
-    """Redis客户端fixture"""
-    redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
-    client = redis.from_url(redis_url)
-    yield client
-    # 清理测试数据
-    client.flushdb()
+def app():
+    """创建应用实例"""
+    from src.app_factory import AppFactory
+    app = AppFactory.create_app()
+    app.config['TESTING'] = True
+    # 使用测试用的Redis URL
+    app.config['REDIS_URL'] = os.environ.get('REDIS_URL', 'redis://localhost:6379/1')
+    return app
 
-@pytest.fixture(autouse=True)
-def clean_redis(redis_client):
-    """自动清理Redis数据"""
-    yield
-    redis_client.flushdb()
+
+@pytest.fixture(scope="session")
+def client(app):
+    """创建测试客户端"""
+    return app.test_client()
+
+
+@pytest.fixture(scope="session")
+def runner(app):
+    """创建CLI运行器"""
+    return app.test_cli_runner()

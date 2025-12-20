@@ -1,173 +1,226 @@
-# 微信公众号服务端
+# 谁是卧底游戏
 
-这是一个基于 Flask 的微信公众号服务端项目，实现了"谁是卧底"游戏功能。这是一个线上线下结合的游戏发牌器，游戏开始后只需要房主最终投票即可。
+基于微信公众号的文字版"谁是卧底"游戏，使用Flask + Redis实现，通过Docker Compose部署。
 
-## 项目结构
+## 项目特色
 
-- `app.py`: 主应用文件，包含微信验证接口和游戏逻辑
-- `requirements.txt`: Python 依赖包
-- `Dockerfile`: Docker 镜像构建文件
-- `docker-compose.yml`: Docker Compose 编排文件
-- `nginx.conf`: Nginx 配置文件
-- `.env.example`: 环境变量配置示例文件
-- `REQUIREMENTS.md`: 项目需求文档
-- `menu_config.json`: 微信自定义菜单配置示例
-- `tests/`: 测试目录
-  - `tests/unit/`: 单元测试
-    - `tests/unit/test_logic.py`: 游戏逻辑测试
-  - `tests/integration/`: 集成测试
-    - `tests/integration/test_flow.py`: 游戏流程测试
-  - `tests/test_coverage.py`: 代码覆盖率测试
-  - `tests/TEST_PLAN.md`: 测试计划文档
+- 🎮 基于微信公众号的互动游戏
+- 🏗️ 面向对象设计，模块化架构
+- 🐳 Docker容器化部署
+- 📊 Redis数据存储
+- 🔧 灵活的配置管理
+- 🧪 完整的测试覆盖
 
-## 功能特性
+## 技术架构
 
-- 微信公众号接入验证
-- "谁是卧底"游戏完整实现（线上线下结合模式）
-- 支持多房间并发游戏
-- 支持创建房间、加入房间、开始游戏等操作
-- 自定义菜单支持（简化版）
-- 自动分配多个角色和词语
-- 房主通过序号简化投票操作
-- 通过微信客服消息接口实时推送消息给玩家
-- 玩家只能看到自己的词语，不知道自己是平民还是卧底
+### 新版架构特点
 
-## 游戏规则
+1. **分层架构设计**：
+   - 模型层（Models）：房间、用户等核心实体
+   - 服务层（Services）：游戏逻辑、消息处理
+   - 仓储层（Repositories）：数据访问抽象
+   - 配置层（Config）：游戏规则和配置
+   - 工具层（Utils）：辅助工具类
 
-1. 至少3人参与，根据人数分配卧底数量：
-   - 3-5人：1个卧底
-   - 6-8人：2个卧底
-   - 9-12人：3个卧底
-2. 每个玩家只能看到自己的词语，不知道自己是平民还是卧底
-3. 平民和卧底获得相似但不同的词语
-4. 线下进行描述和讨论
-5. 房主通过"t+序号"投票决定淘汰玩家
-6. 如果所有卧底被淘汰，则平民获胜；如果卧底数量大于等于平民数量，则卧底获胜
+2. **设计模式应用**：
+   - 工厂模式：应用创建
+   - 仓储模式：数据访问
+   - 服务模式：业务逻辑封装
+   - 配置模式：参数管理
 
-## 部署说明
+3. **现代化特性**：
+   - 类型提示
+   - 数据类（dataclass）
+   - 枚举类型
+   - 异常处理
 
-### 使用 Docker Compose 部署
+## 目录结构
 
-1. 确保已安装 Docker 和 Docker Compose
-2. 复制 `.env.example` 文件为 `.env` 并修改其中的环境变量：
-   ```bash
-   cp .env.example .env
-   # 编辑 .env 文件，设置 WECHAT_TOKEN、WECHAT_APP_ID 和 WECHAT_APP_SECRET
-   ```
-3. 运行以下命令启动服务：
-   ```bash
-   docker-compose up -d
-   ```
-4. 服务将在 80 端口运行
+```
+.
+├── src/                    # 源代码目录
+│   ├── main.py            # 应用入口
+│   ├── app_factory.py     # 应用工厂
+│   ├── models/           # 模型层
+│   │   ├── room.py       # 房间模型
+│   │   └── user.py       # 用户模型
+│   ├── services/         # 服务层
+│   │   ├── game_service.py   # 游戏服务
+│   │   └── message_service.py # 消息服务
+│   ├── repositories/      # 仓储层
+│   │   ├── room_repository.py # 房间仓储
+│   │   └── user_repository.py # 用户仓储
+│   ├── config/           # 配置层
+│   │   └── game_config.py    # 游戏配置
+│   └── utils/            # 工具层
+│       └── word_generator.py # 词语生成器
+├── tests/                  # 测试目录
+│   ├── README.md          # 测试说明
+│   ├── conftest.py        # 测试配置
+│   ├── unit/              # 单元测试
+│   └── integration/       # 集成测试
+├── docs/                   # 文档目录
+│   ├── architecture.md    # 架构设计文档
+│   └── state_machine.md   # 状态机文档
+├── Dockerfile             # Docker构建文件
+├── Dockerfile.test        # 测试Docker构建文件
+├── docker-compose.yml     # Docker Compose配置
+├── nginx.conf             # Nginx配置
+├── requirements.txt       # Python依赖
+├── .env.example           # 环境变量示例
+└── .gitignore             # Git忽略文件
+```
+
+## 部署方式
+
+### Docker Compose部署（推荐）
+
+```bash
+# 1. 复制环境变量配置
+cp .env.example .env
+# 编辑.env文件，填写实际的微信配置信息
+
+# 2. 启动服务
+docker-compose up -d
+
+# 3. 查看服务状态
+docker-compose ps
+
+# 4. 查看日志
+docker-compose logs -f
+```
 
 ### 手动部署
 
-1. 安装依赖：
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. 设置环境变量：
-   ```bash
-   export WECHAT_TOKEN=your_wechat_token_here
-   export WECHAT_APP_ID=your_wechat_app_id_here
-   export WECHAT_APP_SECRET=your_wechat_app_secret_here
-   export REDIS_URL=redis://localhost:6379/0
-   ```
-3. 运行应用：
-   ```bash
-   python app.py
-   ```
-
-## 创建自定义菜单
-
-项目提供了创建微信公众号自定义菜单的接口（简化版，仅包含"谁是卧底"主菜单）：
-
-1. 确保已设置 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 环境变量
-2. 调用创建菜单接口：
-   ```bash
-   curl -X POST http://your-domain.com/create_menu
-   ```
-   
-或者直接使用微信官方工具导入 `menu_config.json` 文件。
-
-## 测试说明
-
-项目提供了多种测试方式：
-
-### 1. 简单集成测试 (`tests/integration/test_flow.py`)
-用于快速验证核心游戏流程，模拟真实用户操作：
 ```bash
-python tests/integration/test_flow.py
+# 1. 安装依赖
+pip install -r requirements.txt
+
+# 2. 启动Redis服务器
+./start_redis.sh
+
+# 3. 配置环境变量
+export WECHAT_TOKEN=your_token_here
+export WECHAT_APP_ID=your_app_id_here
+export WECHAT_APP_SECRET=your_app_secret_here
+export REDIS_URL=redis://localhost:6379/0
+
+# 4. 启动应用
+python src/main.py
 ```
 
-### 2. 专业单元测试 (`tests/unit/` 目录)
-使用 pytest 框架，提供详细的测试报告：
+## 测试运行
+
+### Docker环境测试（推荐）
+
 ```bash
-# 运行所有单元测试
-pytest tests/unit/
+# 运行所有测试
+./test_docker.sh
 
-# 运行特定测试文件
-pytest tests/unit/test_logic.py
+# 或者手动运行
+docker-compose build test
+docker-compose run --rm test
 
-# 运行特定测试类
-pytest tests/unit/test_logic.py::TestLogic
-
-# 运行特定测试方法
-pytest tests/unit/test_logic.py::TestLogic::test_create_room
+# 运行特定测试
+docker-compose run --rm test python -m pytest tests/unit/src/models/test_room.py -v
 ```
 
-### 3. 代码覆盖率测试
+### 本地环境测试
+
 ```bash
-# 运行覆盖率测试并生成报告
-pytest tests/test_coverage.py --cov=app --cov-report=term-missing
+# 确保已安装依赖
+pip install -r requirements.txt
 
-# 生成HTML格式的覆盖率报告
-pytest tests/test_coverage.py --cov=app --cov-report=html
+# 启动Redis服务器
+./start_redis.sh
 
-# 查看覆盖率报告
-open htmlcov/index.html
+# 运行所有测试
+./run_tests.sh
 
-# 运行所有测试（单元测试+覆盖率测试）并生成覆盖率报告
-pytest tests/unit/ tests/test_coverage.py --cov=app --cov-report=term
+# 或者直接运行
+python -m pytest tests/
+
+# 运行单元测试
+python -m pytest tests/unit/
+
+# 运行集成测试
+python -m pytest tests/integration/
+
+# 生成覆盖率报告
+python -m pytest tests/ --cov=src --cov-report=html
 ```
 
-当前代码覆盖率约为 68%，主要覆盖了核心游戏逻辑功能。
+## 环境变量配置
 
-## 游戏命令
+```bash
+# 微信公众号配置
+WECHAT_TOKEN=your_token_here
+WECHAT_APP_ID=your_app_id_here
+WECHAT_APP_SECRET=your_app_secret_here
 
-- `谁是卧底` - 查看游戏玩法和帮助信息
-- `创建房间` - 创建新的游戏房间
-- `加入房间+房间号` - 加入指定房间（例如：加入房间1234）
-- `开始游戏` - 房主开始游戏（至少3人）
-- `查看状态` - 查看当前房间状态和个人信息（显示序号和昵称，不显示卧底身份）
-- `t+序号` - 房主投票给指定玩家（例如：t1）
-- `帮助` - 显示帮助信息
+# Redis配置
+REDIS_URL=redis://redis:6379/0
 
-## 自定义菜单
+# 应用密钥
+SECRET_KEY=your_secret_key_here
+```
 
-在微信公众号后台设置自定义菜单：
-- 菜单名称：谁是卧底
-- 菜单KEY：WHO_IS_UNDERCOVER
-- 类型：click
+## 游戏使用说明
 
-点击菜单将显示游戏玩法和帮助信息。
+### 基本命令
 
-参考 `menu_config.json` 文件中的示例配置。
+1. **创建房间**：发送"创建房间"
+2. **加入房间**：发送"加入房间+房间号"（如"加入房间1234"）
+3. **开始游戏**：房主发送"开始游戏"
+4. **查看状态**：发送"查看状态"
+5. **查看词语**：发送"查看词语"
+6. **投票淘汰**：房主发送"t+序号"（如"t2"表示投票给2号玩家）
+7. **查看帮助**：发送"谁是卧底"或"帮助"
 
-## 接口说明
+### 游戏规则
 
-- `/`: 微信公众号验证和消息处理接口
-- `/hello`: 测试接口
-- `/health`: 健康检查接口
-- `/menu`: 菜单显示接口
-- `/create_menu`: 创建自定义菜单接口
-- `/get_access_token`: 获取access_token接口（调试用）
+- 至少3人参与，最多12人
+- 根据人数分配卧底数量：
+  - 3-5人：1个卧底
+  - 6-8人：2个卧底
+  - 9-12人：3个卧底
+- 玩家通过线下描述词语进行游戏
+- 房主负责最终投票决定淘汰玩家
+- 游戏目标：
+  - 平民：找出所有卧底
+  - 卧底：混淆视听，生存到最后
 
-## 注意事项
+## 开发指南
 
-- 请确保在微信公众平台后台将服务器地址设置为 `http://your-domain.com/`
-- 确保服务器 80 端口可访问
-- 实际部署时需要配置微信公众号的开发者设置和自定义菜单
-- 需要在微信公众平台配置 AppID 和 AppSecret 才能使用自定义菜单功能
-- 个人订阅号可能没有自定义菜单权限，需要服务号或认证订阅号
-- 需要确保公众号有客服消息接口权限才能向用户推送消息
+### 代码规范
+
+- 遵循PEP 8代码风格
+- 使用类型提示
+- 编写单元测试
+- 保持函数简洁单一职责
+
+### 测试运行
+
+```bash
+# 运行所有测试
+python -m pytest tests/
+
+# 运行单元测试
+python -m pytest tests/unit/
+
+# 运行集成测试
+python -m pytest tests/integration/
+
+# 生成覆盖率报告
+python -m pytest tests/ --cov=src --cov-report=html
+```
+
+## 项目文档
+
+- [架构设计文档](docs/architecture.md)：详细介绍项目架构和设计模式
+- [状态机文档](docs/state_machine.md)：游戏状态转换图和说明
+- [测试说明](tests/README.md)：测试结构和运行方法
+
+## 许可证
+
+MIT License
