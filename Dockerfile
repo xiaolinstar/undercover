@@ -1,8 +1,9 @@
-FROM python:3.9-slim
+FROM python:3.11-alpine
 
 WORKDIR /app
 
 COPY requirements.txt .
+RUN pip install -i https://mirrors.tencent.com/pypi/simple --upgrade pip
 RUN pip install --no-cache-dir -i https://mirrors.tencent.com/pypi/simple -r requirements.txt
 
 COPY . .
