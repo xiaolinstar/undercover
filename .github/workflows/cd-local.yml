@@ -1,4 +1,4 @@
-name: 谁是卧底游戏 CI/CD 部署流水线
+name: 谁是卧底桌游发牌器：自动化部署
 
 on:
   # 触发方式
@@ -37,19 +37,3 @@ jobs:
             
             echo "Deployment completed successfully!"
 
-      # 发送部署成功邮件通知
-      - name: Send deployment success email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.qq.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: "🚀 应用部署完成 - ${{ github.repository }}"
-          to: xing.xiaolin@foxmail.com
-          from: GitHub Actions
-          html_body: |
-            <h2>《谁是卧底》微信公众号发牌器，已部署到腾讯云服务器</h2>
-            <hr>
-            <p><small>此邮件由 GitHub Actions 自动发送</small></p>
