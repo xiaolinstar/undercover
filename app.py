@@ -9,6 +9,9 @@ import redis
 import requests
 from flask import Flask, request
 
+# 导入消息配置
+from messages import ROOM_MESSAGES, GAME_MESSAGES, USER_MESSAGES, VOTE_MESSAGES, HELP_MESSAGES, ERROR_MESSAGES
+
 app = Flask(__name__)
 
 # 微信公众号的token，可以从环境变量获取或者硬编码
@@ -45,30 +48,7 @@ WORDS = {
     ]
 }
 
-# 谁是卧底游戏玩法说明
-GAME_INSTRUCTIONS = """谁是卧底游戏玩法：
-1. 至少3人参与游戏，根据人数分配卧底数量：
-   - 3-5人：1个卧底
-   - 6-8人：2个卧底
-   - 9-12人：3个卧底
-2. 创建房间后，其他玩家通过房间号加入
-3. 房主输入"开始游戏"分配词语和角色
-4. 每个玩家只能看到自己的词语，不知道自己是平民还是卧底
-5. 玩家在线下进行描述和讨论
-6. 房主通过"t+序号"投票淘汰玩家
-7. 游戏结束条件：
-   - 所有卧底被淘汰：平民获胜
-   - 卧底数量≥平民数量：卧底获胜
 
-游戏命令：
-- 谁是卧底 - 查看游戏玩法和帮助信息
-- 创建房间 - 创建新的游戏房间
-- 加入房间+房间号 - 加入指定房间（例如：加入房间1234）
-- 开始游戏 - 房主开始游戏（至少3人）
-- 查看状态 - 查看当前房间状态和个人信息
-- 查看词语 - 查看自己的词语（游戏开始后可用）
-- t+序号 - 房主投票给指定玩家（例如：t1）
-- 帮助 - 显示此帮助信息"""
 
 
 @app.route('/hello', methods=['GET'])
@@ -278,7 +258,7 @@ def handle_text_message(user_id, content):
     
     # 处理用户命令
     if content == '谁是卧底':
-        return GAME_INSTRUCTIONS
+        return HELP_MESSAGES["INSTRUCTIONS"]
     elif content == '创建房间':
         return create_room(user_id)
     elif content.startswith('加入房间'):
@@ -296,11 +276,11 @@ def handle_text_message(user_id, content):
             target_index = int(content[1:])
             return handle_vote_by_index(user_id, target_index)
         except ValueError:
-            return "投票格式错误，请使用't+序号'的格式，例如't1'"
+            return ERROR_MESSAGES["VOTE_FORMAT_ERROR"]
     elif content == '帮助':
-        return show_help()
+        return HELP_MESSAGES["INSTRUCTIONS"]
     else:
-        return "未知命令，请输入'帮助'查看可用命令"
+        return ERROR_MESSAGES["UNKNOWN_COMMAND"]
 
 
 def create_room(user_id):
@@ -337,7 +317,7 @@ def create_room(user_id):
     }
     save_user(user_id, user_data)
     
-    return f"房间创建成功！房间号：{room_id}\n请其他玩家输入'加入房间{room_id}'加入房间\n房主输入'开始游戏'即可开始游戏"
+    return ROOM_MESSAGES["CREATE_SUCCESS"].format(room_id=room_id)
 
 
 def join_room(user_id, room_id):
@@ -347,15 +327,19 @@ def join_room(user_id, room_id):
     # 检查房间是否存在
     room = get_room(room_id)
     if not room:
-        return "房间不存在，请检查房间号"
+        return ROOM_MESSAGES["NOT_FOUND"]
     
     # 检查房间状态
     if room['status'] != 'waiting':
-        return "游戏已经开始或结束，无法加入"
+        return ROOM_MESSAGES["GAME_STARTED"]
     
     # 检查是否已在房间中
     if user_id in room['players']:
-        return "您已在房间中"
+        return ROOM_MESSAGES["ALREADY_IN_ROOM"]
+    
+    # 检查房间人数
+    if len(room['players']) >= 12:
+        return ROOM_MESSAGES["ROOM_FULL"]
     
     # 加入房间
     room['players'].append(user_id)
@@ -372,9 +356,9 @@ def join_room(user_id, room_id):
     save_user(user_id, user_data)
     
     # 通知房间内其他人有新玩家加入
-    notify_players(room_id, f"新玩家加入房间，当前房间人数：{len(room['players'])}")
+    notify_players(room_id, ROOM_MESSAGES["JOIN_NOTIFICATION"].format(player_count=len(room['players'])))
     
-    return f"成功加入房间{room_id}！当前房间人数：{len(room['players'])}"
+    return ROOM_MESSAGES["JOIN_SUCCESS"].format(room_id=room_id, player_count=len(room['players']))
 
 
 def start_game(user_id):
@@ -384,30 +368,35 @@ def start_game(user_id):
     # 获取用户信息
     user_data = get_user(user_id)
     if not user_data or not user_data.get('current_room'):
-        return "您不在任何房间中"
+        return USER_MESSAGES["NOT_IN_ROOM"]
     
     room_id = user_data['current_room']
     room = get_room(room_id)
     
     # 检查是否为房主
     if room['creator'] != user_id:
-        return "只有房主才能开始游戏"
+        return ROOM_MESSAGES["NOT_OWNER"]
     
     # 检查房间人数
     if len(room['players']) < 3:
-        return "至少需要3人才能开始游戏"
+        return ROOM_MESSAGES["INSUFFICIENT_PLAYERS"]
     
-    # 更改房间状态
-    room['status'] = 'playing'
+    # 检查房间状态
+    if room['status'] == 'playing':
+        return ROOM_MESSAGES["GAME_ALREADY_STARTED"]
+    elif room['status'] == 'ended':
+        return ROOM_MESSAGES["GAME_ENDED"]
     
-    # 根据玩家数量确定卧底数量
+    # 根据人数确定卧底数量
     player_count = len(room['players'])
-    if player_count <= 5:
+    if 3 <= player_count <= 5:
         undercover_count = 1
-    elif player_count <= 8:
+    elif 6 <= player_count <= 8:
         undercover_count = 2
-    else:
+    elif 9 <= player_count <= 12:
         undercover_count = 3
+    else:
+        return ROOM_MESSAGES["INVALID_PLAYER_COUNT"]
     
     # 随机选择卧底
     room['undercovers'] = random.sample(room['players'], undercover_count)
@@ -416,11 +405,14 @@ def start_game(user_id):
     category = random.choice(list(WORDS.keys()))
     word_pair = random.choice(WORDS[category])
     
-    # 设置词语
+    # 分配词语
     room['words'] = {
-        'civilian': word_pair[0],  # 平民词
-        'undercover': word_pair[1]  # 卧底词
+        'civilian': word_pair[0],
+        'undercover': word_pair[1]
     }
+    
+    # 更新房间状态
+    room['status'] = 'playing'
     
     # 保存房间信息
     save_room(room_id, room)
@@ -432,12 +424,12 @@ def start_game(user_id):
         else:
             word = room['words']['civilian']
         
-        send_message(player, f"您的词语：{word}\n请根据您的词语进行描述，注意不要暴露自己的身份\n线下进行描述和讨论，结束后由房主进行投票")
+        send_message(player, GAME_MESSAGES["START_NOTIFICATION"].format(word=word))
     
     # 特别提醒房主
-    send_message(room['creator'], f"\n您是房主，请在线下游戏结束后，通过't+序号'的方式来决定被淘汰的玩家")
+    send_message(room['creator'], GAME_MESSAGES["OWNER_REMINDER"])
     
-    return "success"  # 对于发起者不需要回复
+    return VOTE_MESSAGES["SUCCESS"]  # 对于发起者不需要回复
 
 
 def handle_vote_by_index(user_id, target_index):
@@ -447,29 +439,29 @@ def handle_vote_by_index(user_id, target_index):
     # 获取用户信息
     user_data = get_user(user_id)
     if not user_data or not user_data.get('current_room'):
-        return "您不在任何房间中"
+        return USER_MESSAGES["NOT_IN_ROOM"]
     
     room_id = user_data['current_room']
     room = get_room(room_id)
     
     # 检查游戏状态
     if room['status'] != 'playing':
-        return "游戏尚未开始或已结束"
+        return VOTE_MESSAGES["GAME_NOT_PLAYING"]
     
     # 检查是否为房主
     if room['creator'] != user_id:
-        return "只有房主才能进行投票"
+        return VOTE_MESSAGES["NOT_OWNER"]
     
     # 检查序号是否有效
     if target_index < 1 or target_index > len(room['players']):
-        return f"序号无效，请输入1-{len(room['players'])}之间的数字"
+        return VOTE_MESSAGES["INVALID_INDEX"]
     
     # 获取目标玩家
     target_player = room['players'][target_index - 1]
     
     # 检查目标玩家是否已被淘汰
     if target_player in room['eliminated']:
-        return "该玩家已被淘汰"
+        return VOTE_MESSAGES["PLAYER_ELIMINATED"]
     
     # 记录被淘汰的玩家
     room['eliminated'].append(target_player)
@@ -480,12 +472,12 @@ def handle_vote_by_index(user_id, target_index):
     # 通知结果
     target_data = get_user(target_player)
     target_nickname = target_data['nickname'] if target_data else f'玩家{target_index}'
-    notify_players(room_id, f"房主投票决定：{target_nickname}被淘汰")
+    notify_players(room_id, VOTE_MESSAGES["ELIMINATION_RESULT"].format(nickname=target_nickname))
     
     # 检查游戏是否结束
     check_game_end(room_id)
     
-    return "success"
+    return VOTE_MESSAGES["SUCCESS"]
 
 
 def check_game_end(room_id):
@@ -501,7 +493,7 @@ def check_game_end(room_id):
     if len(eliminated_undercovers) == len(room['undercovers']):
         room['status'] = 'ended'
         save_room(room_id, room)
-        notify_players(room_id, "游戏结束！平民获胜，成功找出了所有卧底！")
+        notify_players(room_id, GAME_MESSAGES["CIVILIAN_WIN"])
         
         # 游戏结束后，让所有玩家自动退出房间
         for player_id in room['players']:
@@ -519,7 +511,7 @@ def check_game_end(room_id):
     if len(remaining_players) < 3:
         room['status'] = 'ended'
         save_room(room_id, room)
-        notify_players(room_id, "游戏结束！卧底获胜！")
+        notify_players(room_id, GAME_MESSAGES["UNDERCOVER_WIN"])
         
         # 游戏结束后，让所有玩家自动退出房间
         for player_id in room['players']:
@@ -537,7 +529,7 @@ def check_game_end(room_id):
     if len(remaining_undercovers) >= len(remaining_civilians):
         room['status'] = 'ended'
         save_room(room_id, room)
-        notify_players(room_id, "游戏结束！卧底获胜！")
+        notify_players(room_id, GAME_MESSAGES["UNDERCOVER_WIN"])
         
         # 游戏结束后，让所有玩家自动退出房间
         for player_id in room['players']:
@@ -553,7 +545,7 @@ def check_game_end(room_id):
     save_room(room_id, room)
     
     # 通知进入下一轮
-    notify_players(room_id, f"进入第{room['current_round']}轮，请继续线下进行游戏")
+    notify_players(room_id, GAME_MESSAGES["ROUND_NOTIFICATION"].format(round_number=room['current_round']))
 
 
 def show_status(user_id):
@@ -604,18 +596,18 @@ def show_word(user_id):
     # 获取用户信息
     user_data = get_user(user_id)
     if not user_data or not user_data.get('current_room'):
-        return "您不在任何房间中"
+        return USER_MESSAGES["NOT_IN_ROOM"]
     
     room_id = user_data['current_room']
     room = get_room(room_id)
     
     # 检查游戏是否已开始
     if room['status'] != 'playing':
-        return "游戏尚未开始，无法查看词语信息"
+        return USER_MESSAGES["GAME_NOT_STARTED"]
     
     # 检查用户是否在房间中
     if user_id not in room['players']:
-        return "您不在当前房间中"
+        return USER_MESSAGES["NOT_IN_CURRENT_ROOM"]
     
     # 获取用户的词语
     if user_id in room['undercovers']:
@@ -626,11 +618,7 @@ def show_word(user_id):
     return f"您的词语：{word}\n请根据您的词语进行描述，注意不要暴露自己的身份"
 
 
-def show_help():
-    """
-    显示帮助信息
-    """
-    return GAME_INSTRUCTIONS
+
 
 
 def notify_players(room_id, message, exclude=None):

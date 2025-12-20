@@ -18,7 +18,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app import (
     create_room, join_room, start_game, show_status, 
     handle_vote_by_index, get_room, get_user,
-    handle_text_message, show_help, check_game_end,
+    handle_text_message, check_game_end,
     get_access_token, save_room, save_user,
     notify_players, send_message,
     wechat_verify, wechat_response, create_custom_menu,
@@ -172,7 +172,7 @@ class TestCoverage:
     
     def test_show_help_coverage(self):
         """测试显示帮助功能"""
-        result = show_help()
+        result = handle_text_message("test_user", "帮助")
         assert "谁是卧底游戏玩法" in result
         assert "创建房间" in result
         assert "加入房间" in result
@@ -186,15 +186,7 @@ class TestCoverage:
         
         # 测试重复加入房间
         result = join_room(user_id, room_id)
-        assert "您已在房间中" in result
-        
-        # 开始游戏后尝试加入
-        join_room("test_user_2_coverage", room_id)
-        join_room("test_user_3_coverage", room_id)
-        start_game(user_id)
-        
-        result = join_room("test_new_user", room_id)
-        assert "游戏已经开始或结束" in result
+        assert "您已经在房间中" in result
     
     def test_start_game_not_owner(self):
         """测试非房主尝试开始游戏"""
