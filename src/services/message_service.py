@@ -40,32 +40,34 @@ class MessageService:
     
     def handle_wechat_message(self, xml_data: str) -> str:
         """处理微信消息"""
+        simple_user = None
+        wechat_service_user = None
         try:
             # 解析XML数据
             root = ET.fromstring(xml_data)
             
             # 提取消息基本信息
             msg_type = root.find("MsgType").text
-            from_user = root.find("FromUserName").text
-            to_user = root.find("ToUserName").text
-            
+            simple_user = root.find("FromUserName").text
+            wechat_service_user = root.find("ToUserName").text
+
             # 根据消息类型处理
             if msg_type == "text":
                 content = root.find("Content").text
-                response_content = self._handle_text_message(from_user, content)
+                response_content = self._handle_text_message(simple_user, content)
             elif msg_type == "event":
                 event = root.find("Event").text
-                response_content = self._handle_event_message(from_user, event)
+                response_content = self._handle_event_message(simple_user, event)
             else:
                 response_content = HELP_MESSAGES["INSTRUCTIONS"]
             
             # 构造响应XML
-            return self._build_response_xml(to_user, from_user, response_content)
+            return self._build_response_xml(simple_user, wechat_service_user, response_content)
         except Exception as e:
             print(f"处理微信消息异常: {e}")
             return self._build_response_xml(
-                to_user, 
-                from_user, 
+                simple_user,
+                wechat_service_user,
                 ERROR_MESSAGES["SYSTEM_ERROR"]
             )
     
