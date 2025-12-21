@@ -14,16 +14,18 @@ from src.repositories.user_repository import UserRepository
 from src.config.game_config import GameConfig
 from src.utils.word_generator import WordGenerator
 from src.fsm.game_state_machine import GameStateMachine, GameState, GameEvent
+from src.services.push_service import PushService
 
 
 class GameService:
     """游戏服务类"""
     
-    def __init__(self, room_repo: RoomRepository, user_repo: UserRepository):
+    def __init__(self, room_repo: RoomRepository, user_repo: UserRepository, push_service: Optional[PushService] = None):
         self.room_repo = room_repo
         self.user_repo = user_repo
         self.word_generator = WordGenerator(GameConfig.WORD_PAIRS)
         self.fsm = GameStateMachine()
+        self.push = push_service
     
     def create_room(self, user_id: str) -> Tuple[bool, str]:
         """创建房间"""
@@ -51,6 +53,11 @@ class GameService:
             
             if not self.user_repo.save(user):
                 return False, "保存用户信息失败"
+            if self.push and self.push.enabled():
+                nickname = self.push.get_user_nickname(user_id)
+                if nickname:
+                    user.nickname = nickname
+                    self.user_repo.save(user)
             
             return True, room_id
         except Exception as e:
@@ -93,6 +100,11 @@ class GameService:
             
             if not self.user_repo.save(user):
                 return False, "保存用户信息失败"
+            if self.push and self.push.enabled():
+                nickname = self.push.get_user_nickname(user_id)
+                if nickname:
+                    user.nickname = nickname
+                    self.user_repo.save(user)
             
             return True, f"成功加入房间，当前房间人数：{room.get_player_count()}"
         except Exception as e:
@@ -157,6 +169,13 @@ class GameService:
             # 保存房间信息
             if not self.room_repo.save(room):
                 return False, "开始游戏失败"
+            if self.push and self.push.enabled():
+                for pid in room.players:
+                    if pid in room.undercovers:
+                        w = room.words['undercover']
+                    else:
+                        w = room.words['civilian']
+                    self.push.send_text(pid, f"您的词语：{w}")
             
             return True, "游戏开始成功"
         except Exception as e:
@@ -245,8 +264,11 @@ class GameService:
             # 检查游戏是否结束
             game_ended, result_message = self._check_game_end(room)
             if game_ended:
+                if self.push and self.push.enabled():
+                    self._push_room_status(room)
                 return True, result_message
-            
+            if self.push and self.push.enabled():
+                self._push_room_status(room)
             return True, "投票成功"
         except Exception as e:
             print(f"投票异常: {e}")
@@ -372,3 +394,26 @@ class GameService:
             if user and user.current_room == room.room_id:
                 user.leave_room()
                 self.user_repo.save(user)
+
+    def _push_room_status(self, room: Room) -> None:
+        lines = [
+            f"房间号：{room.room_id}",
+            f"房间状态：{room.status.value}",
+            "房间成员：",
+        ]
+        for i, player in enumerate(room.players):
+            u = self.user_repo.get(player)
+            n = (u.nickname if u else f"玩家{i+1}")
+            if player == room.creator:
+                n += "(房主)"
+            if room.is_eliminated(player):
+                n += "(已淘汰)"
+            lines.append(f"{i+1}. {n}")
+        if room.status == RoomStatus.PLAYING:
+            lines.append("")
+            lines.append(f"当前轮次：第{room.current_round}轮")
+            lines.append(f"已淘汰：{len(room.eliminated)}人")
+        content = "\n".join(lines)
+        for pid in room.players:
+            if self.push and self.push.enabled():
+                self.push.send_text(pid, content)

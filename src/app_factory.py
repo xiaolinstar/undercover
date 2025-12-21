@@ -12,6 +12,8 @@ from src.repositories.room_repository import RoomRepository
 from src.repositories.user_repository import UserRepository
 from src.services.game_service import GameService
 from src.services.message_service import MessageService
+from src.services.wechat_client import WeChatClient
+from src.services.push_service import PushService
 
 
 class AppFactory:
@@ -47,6 +49,7 @@ class AppFactory:
         app.config['WECHAT_APP_ID'] = os.environ.get('WECHAT_APP_ID', 'your_app_id_here')
         app.config['WECHAT_APP_SECRET'] = os.environ.get('WECHAT_APP_SECRET', 'your_app_secret_here')
         app.config['REDIS_URL'] = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+        app.config['ENABLE_WECHAT_PUSH'] = os.environ.get('ENABLE_WECHAT_PUSH', 'False')
         
         # 配置密钥
         app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
@@ -62,7 +65,12 @@ class AppFactory:
         user_repo = UserRepository(redis_client)
         
         # 创建服务
-        game_service = GameService(room_repo, user_repo)
+        client = None
+        push_service = None
+        if app.config['ENABLE_WECHAT_PUSH'] in ('1', 'true', 'True'):
+            client = WeChatClient(app.config['WECHAT_APP_ID'], app.config['WECHAT_APP_SECRET'])
+            push_service = PushService(client)
+        game_service = GameService(room_repo, user_repo, push_service)
         message_service = MessageService(game_service, app.config['WECHAT_TOKEN'])
         
         return room_repo, user_repo, game_service, message_service
