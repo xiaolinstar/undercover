@@ -38,8 +38,9 @@ spec:
               ephemeral-storage: "2Gi"
       volumes:
         - name: redis-storage
-          persistentVolumeClaim:
-            claimName: redis-pvc
+          hostPath:
+            path: /data/redis
+            type: DirectoryOrCreate
 
 ---
 apiVersion: v1
@@ -56,16 +57,4 @@ spec:
     - port: 6379
       targetPort: 6379
   type: ClusterIP
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: redis-pvc
-  namespace: default
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 2Gi
+# TODO: PVC
