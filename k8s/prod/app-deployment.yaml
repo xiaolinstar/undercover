@@ -15,6 +15,7 @@ spec:
       labels:
         app: web-app
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: web
           image: undercover:latest # 需要推送镜像到仓库后更新此行

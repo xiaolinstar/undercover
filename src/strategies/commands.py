@@ -40,7 +40,7 @@ class CreateRoomCommand(CommandStrategy):
         success, result = self.game_service.create_room(user_id)
         if success:
             room_id = result
-            return f"房间创建成功！房间号：{room_id}\n请其他玩家输入'加入房间{room_id}'\n房主输入'开始游戏'即可开始游戏"
+            return f"房间创建成功！房间号：{room_id}\n请其他玩家输入'加入{room_id}'\n房主输入'开始'即可开始游戏"
         return result
 
 
@@ -56,7 +56,7 @@ class JoinRoomCommand(CommandStrategy):
         prefix = COMMAND_ALIASES["join_room_prefix"]
         room_id = content[len(prefix):].strip()
         if not room_id:
-            return "请输入房间号，格式：加入房间1234"
+            return "请输入房间号，格式：加入1234"
         success, result = self.game_service.join_room(user_id, room_id)
         return result
 
