@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from enum import Enum
-from typing import Dict, Set, Tuple
+from typing import Dict, Tuple
 
 
 class GameState(Enum):

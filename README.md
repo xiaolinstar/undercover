@@ -1,4 +1,4 @@
-# 谁是卧底游戏
+# 聚会桌游，谁是卧底
 
 基于微信公众号的文字版"谁是卧底"游戏，使用Flask + Redis实现，通过Docker Compose部署。
 
@@ -64,8 +64,8 @@
 │   ├── architecture.md    # 架构设计文档
 │   └── state_machine.md   # 状态机文档
 ├── Dockerfile             # Docker构建文件
-├── Dockerfile.test        # 测试Docker构建文件
 ├── docker-compose.yml     # Docker Compose配置
+├── docker-compose-dev.yml # Docker Compose 开发环境配置
 ├── nginx.conf             # Nginx配置
 ├── requirements.txt       # Python依赖
 ├── .env.example           # 环境变量示例
@@ -91,40 +91,8 @@ docker-compose ps
 docker-compose logs -f
 ```
 
-### 手动部署
-
-```bash
-# 1. 安装依赖
-pip install -r requirements.txt
-
-# 2. 启动Redis服务器
-./start_redis.sh
-
-# 3. 配置环境变量
-export WECHAT_TOKEN=your_token_here
-export WECHAT_APP_ID=your_app_id_here
-export WECHAT_APP_SECRET=your_app_secret_here
-export REDIS_URL=redis://localhost:6379/0
-
-# 4. 启动应用
-python src/main.py
-```
-
 ## 测试运行
 
-### Docker环境测试（推荐）
-
-```bash
-# 运行所有测试
-./test_docker.sh
-
-# 或者手动运行
-docker-compose build test
-docker-compose run --rm test
-
-# 运行特定测试
-docker-compose run --rm test python -m pytest tests/unit/src/models/test_room.py -v
-```
 
 ### 本地环境测试
 
@@ -132,11 +100,8 @@ docker-compose run --rm test python -m pytest tests/unit/src/models/test_room.py
 # 确保已安装依赖
 pip install -r requirements.txt
 
-# 启动Redis服务器
-./start_redis.sh
-
-# 运行所有测试
-./run_tests.sh
+# 启动Redis容器服务
+docker compose -f docker-compose-dev.yml up -d
 
 # 或者直接运行
 python -m pytest tests/
@@ -149,6 +114,10 @@ python -m pytest tests/integration/
 
 # 生成覆盖率报告
 python -m pytest tests/ --cov=src --cov-report=html
+
+
+# 卸载Redis容器服务
+docker compose -f docker-compose-dev.yml down
 ```
 
 ## 环境变量配置
@@ -159,7 +128,7 @@ WECHAT_TOKEN=your_token_here
 WECHAT_APP_ID=your_app_id_here
 WECHAT_APP_SECRET=your_app_secret_here
 
-# Redis配置
+# Redis配置，默认
 REDIS_URL=redis://redis:6379/0
 
 # 应用密钥
@@ -173,10 +142,10 @@ SECRET_KEY=your_secret_key_here
 1. **创建房间**：发送"创建房间"
 2. **加入房间**：发送"加入房间+房间号"（如"加入房间1234"）
 3. **开始游戏**：房主发送"开始游戏"
-4. **查看状态**：发送"查看状态"
-5. **查看词语**：发送"查看词语"
-6. **投票淘汰**：房主发送"t+序号"（如"t2"表示投票给2号玩家）
-7. **查看帮助**：发送"谁是卧底"或"帮助"
+4. **投票淘汰**：房主发送"t+序号"（如"t2"表示投票给2号玩家）
+5. **查看帮助**：发送"谁是卧底"或"帮助"
+
+> 💡 **提示**：发送任意消息时，系统都会自动显示当前的游戏状态和您的词语（如果在游戏中）。
 
 ### 游戏规则
 

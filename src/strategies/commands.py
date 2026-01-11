@@ -78,28 +78,7 @@ class StartGameCommand(CommandStrategy):
         return result
 
 
-class ShowStatusCommand(CommandStrategy):
-    def __init__(self, game_service: GameService):
-        self.game_service = game_service
 
-    def matches(self, content: str) -> bool:
-        return content in COMMAND_ALIASES["show_status"]
-
-    def execute(self, user_id: str, content: str) -> str:
-        success, result = self.game_service.show_status(user_id)
-        return result
-
-
-class ShowWordCommand(CommandStrategy):
-    def __init__(self, game_service: GameService):
-        self.game_service = game_service
-
-    def matches(self, content: str) -> bool:
-        return content in COMMAND_ALIASES["show_word"]
-
-    def execute(self, user_id: str, content: str) -> str:
-        success, result = self.game_service.show_word(user_id)
-        return result
 
 
 class VoteCommand(CommandStrategy):
@@ -122,19 +101,31 @@ class VoteCommand(CommandStrategy):
 
 class CommandRouter:
     def __init__(self, game_service: GameService):
+        self.game_service = game_service
         self.strategies: List[CommandStrategy] = [
             HelpCommand(),
             CreateRoomCommand(game_service),
             JoinRoomCommand(game_service),
             StartGameCommand(game_service),
-            ShowStatusCommand(game_service),
-            ShowWordCommand(game_service),
             VoteCommand(game_service),
         ]
 
     def route(self, user_id: str, content: str) -> str:
         normalized = content.strip().lower()
+        response = ERROR_MESSAGES["UNKNOWN_COMMAND"]
+        
         for strategy in self.strategies:
             if strategy.matches(normalized):
-                return strategy.execute(user_id, normalized)
-        return ERROR_MESSAGES["UNKNOWN_COMMAND"]
+                response = strategy.execute(user_id, normalized)
+                break
+        
+        # 无论执行什么命令（包括未知命令），都尝试追加状态和词语信息
+        status_success, status_msg = self.game_service.show_status(user_id)
+        if status_success:
+            response += f"\n\n{status_msg}"
+            
+        word_success, word_msg = self.game_service.show_word(user_id)
+        if word_success:
+            response += f"\n\n{word_msg}"
+            
+        return response

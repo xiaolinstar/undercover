@@ -7,7 +7,7 @@
 
 import json
 import redis
-from typing import Optional, Dict, Any
+from typing import Optional
 from src.models.room import Room
 from src.config.game_config import GameConfig
 

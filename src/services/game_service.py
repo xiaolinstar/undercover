@@ -6,7 +6,7 @@
 """
 
 import random
-from typing import Optional, List, Tuple
+from typing import Optional, Tuple
 from src.models.room import Room, RoomStatus
 from src.models.user import User
 from src.repositories.room_repository import RoomRepository

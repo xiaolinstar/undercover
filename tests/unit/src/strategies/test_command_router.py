@@ -28,17 +28,21 @@ class StubGameService:
 def test_help_command():
     router = CommandRouter(StubGameService())
     resp = router.route("u1", "帮助")
-    assert resp == HELP_MESSAGES["INSTRUCTIONS"]
+    assert resp.startswith(HELP_MESSAGES["INSTRUCTIONS"])
+    assert "房间号：1234" in resp
+    assert "您的词语：苹果" in resp
 
 
 def test_vote_command_success():
     router = CommandRouter(StubGameService())
     resp = router.route("u1", "t1")
-    assert resp == "投票成功"
+    assert "投票成功" in resp
+    assert "房间号：1234" in resp
 
 
 def test_unknown_command():
     router = CommandRouter(StubGameService())
     resp = router.route("u1", "不存在的命令")
-    assert resp == ERROR_MESSAGES["UNKNOWN_COMMAND"]
+    assert ERROR_MESSAGES["UNKNOWN_COMMAND"] in resp
+    assert "房间号：1234" in resp
 
