@@ -15,6 +15,16 @@ from src.config.game_config import GameConfig
 from src.utils.word_generator import WordGenerator
 from src.fsm.game_state_machine import GameStateMachine, GameState, GameEvent
 from src.services.push_service import PushService
+from src.exceptions import (
+    RoomNotFoundError, RoomStateError, RoomFullError, RoomPermissionError,
+    GameNotStartedError, GameAlreadyStartedError, GameEndedError,
+    InsufficientPlayersError, PlayerEliminatedError, InvalidPlayerIndexError,
+    UserNotInRoomError, UserAlreadyInRoomError,
+    RepositoryException, DomainException
+)
+from src.utils.logger import setup_logger, log_exception, log_business_event
+
+logger = setup_logger(__name__)
 
 
 class GameService:
@@ -48,20 +58,24 @@ class GameService:
             )
             
             # 保存房间和用户信息
-            if not self.room_repo.save(room):
-                return False, "创建房间失败"
+            self.room_repo.save(room)
+            self.user_repo.save(user)
             
-            if not self.user_repo.save(user):
-                return False, "保存用户信息失败"
             if self.push and self.push.enabled():
                 nickname = self.push.get_user_nickname(user_id)
                 if nickname:
                     user.nickname = nickname
                     self.user_repo.save(user)
             
+            log_business_event(logger, "房间创建成功", user_id=user_id, room_id=room_id)
             return True, room_id
+            
+        except RepositoryException as e:
+            log_exception(logger, e, {'user_id': user_id})
+            return False, "创建房间失败，请稍后重试"
+            
         except Exception as e:
-            print(f"创建房间异常: {e}")
+            log_exception(logger, e, {'user_id': user_id})
             return False, "创建房间时发生错误"
     
     def join_room(self, user_id: str, room_id: str) -> Tuple[bool, str]:
@@ -70,19 +84,23 @@ class GameService:
             # 检查房间是否存在
             room = self.room_repo.get(room_id)
             if not room:
-                return False, "房间不存在"
+                raise RoomNotFoundError(room_id)
             
             # 检查房间状态
             if room.status != RoomStatus.WAITING:
-                return False, "游戏已经开始，无法加入房间"
+                raise RoomStateError(
+                    message="游戏已经开始，无法加入房间",
+                    error_code="ROOM-STATE-003",
+                    details={'room_id': room_id, 'status': room.status.value}
+                )
             
             # 检查是否已在房间中
             if room.is_player(user_id):
-                return False, "您已经在房间中"
+                raise UserAlreadyInRoomError(user_id, room_id)
             
             # 检查房间人数
             if room.get_player_count() >= GameConfig.MAX_PLAYERS:
-                return False, "房间已满，无法加入"
+                raise RoomFullError(room_id, GameConfig.MAX_PLAYERS)
             
             # 加入房间
             room.players.append(user_id)
@@ -95,20 +113,28 @@ class GameService:
             )
             
             # 保存房间和用户信息
-            if not self.room_repo.save(room):
-                return False, "加入房间失败"
+            self.room_repo.save(room)
+            self.user_repo.save(user)
             
-            if not self.user_repo.save(user):
-                return False, "保存用户信息失败"
             if self.push and self.push.enabled():
                 nickname = self.push.get_user_nickname(user_id)
                 if nickname:
                     user.nickname = nickname
                     self.user_repo.save(user)
             
+            log_business_event(logger, "用户加入房间", user_id=user_id, room_id=room_id, player_count=room.get_player_count())
             return True, f"成功加入房间，当前房间人数：{room.get_player_count()}"
+            
+        except DomainException as e:
+            logger.warning(f"业务异常: {e.error_code} - {e.message}", extra={'details': e.details})
+            return False, e.message
+            
+        except RepositoryException as e:
+            log_exception(logger, e, {'user_id': user_id, 'room_id': room_id})
+            return False, "加入房间失败，请稍后重试"
+            
         except Exception as e:
-            print(f"加入房间异常: {e}")
+            log_exception(logger, e, {'user_id': user_id, 'room_id': room_id})
             return False, "加入房间时发生错误"
     
     def start_game(self, user_id: str) -> Tuple[bool, str]:
@@ -117,37 +143,41 @@ class GameService:
             # 获取用户信息
             user = self.user_repo.get(user_id)
             if not user or not user.has_joined_room():
-                return False, "您不在任何房间中"
+                raise UserNotInRoomError(user_id)
             
             # 获取房间信息
             room = self.room_repo.get(user.current_room)
             if not room:
-                return False, "房间不存在"
+                raise RoomNotFoundError(user.current_room)
             
             # 检查是否为房主
             if not room.is_creator(user_id):
-                return False, "只有房主才能开始游戏"
+                raise RoomPermissionError(user_id, "开始游戏")
             
             # 检查房间人数
             if room.get_player_count() < GameConfig.MIN_PLAYERS:
-                return False, f"至少需要{GameConfig.MIN_PLAYERS}人才能开始游戏"
+                raise InsufficientPlayersError(room.get_player_count(), GameConfig.MIN_PLAYERS)
             
             # 检查房间状态
             if room.status == RoomStatus.PLAYING:
-                return False, "游戏已经开始"
+                raise GameAlreadyStartedError()
             elif room.status == RoomStatus.ENDED:
-                return False, "游戏已结束"
+                raise GameEndedError()
 
             # 状态机校验
             can_start = self.fsm.can_transition(GameState.WAITING, GameEvent.START)
             if not can_start:
-                return False, "当前状态无法开始游戏"
+                raise RoomStateError(
+                    message="当前状态无法开始游戏",
+                    error_code="ROOM-STATE-003",
+                    details={'room_id': room.room_id, 'status': room.status.value}
+                )
             
             # 根据人数确定卧底数量
             player_count = room.get_player_count()
             undercover_count = GameConfig.get_undercover_count(player_count)
             if undercover_count == 0:
-                return False, "房间人数不符合游戏要求"
+                raise InsufficientPlayersError(player_count, GameConfig.MIN_PLAYERS)
             
             # 随机选择卧底
             room.undercovers = random.sample(room.players, undercover_count)
@@ -167,8 +197,8 @@ class GameService:
             room.current_round = 1
             
             # 保存房间信息
-            if not self.room_repo.save(room):
-                return False, "开始游戏失败"
+            self.room_repo.save(room)
+            
             if self.push and self.push.enabled():
                 for pid in room.players:
                     if pid in room.undercovers:
@@ -177,9 +207,21 @@ class GameService:
                         w = room.words['civilian']
                     self.push.send_text(pid, f"您的词语：{w}")
             
+            log_business_event(logger, "游戏开始", 
+                             user_id=user_id, room_id=room.room_id, 
+                             player_count=player_count, undercover_count=undercover_count)
             return True, "游戏开始成功"
+            
+        except DomainException as e:
+            logger.warning(f"业务异常: {e.error_code} - {e.message}", extra={'details': e.details})
+            return False, e.message
+            
+        except RepositoryException as e:
+            log_exception(logger, e, {'user_id': user_id})
+            return False, "开始游戏失败，请稍后重试"
+            
         except Exception as e:
-            print(f"开始游戏异常: {e}")
+            log_exception(logger, e, {'user_id': user_id})
             return False, "开始游戏时发生错误"
     
     def show_word(self, user_id: str) -> Tuple[bool, str]:
@@ -188,24 +230,24 @@ class GameService:
             # 获取用户信息
             user = self.user_repo.get(user_id)
             if not user or not user.has_joined_room():
-                return False, "您不在任何房间中"
+                raise UserNotInRoomError(user_id)
             
             # 获取房间信息
             room = self.room_repo.get(user.current_room)
             if not room:
-                return False, "房间不存在"
+                raise RoomNotFoundError(user.current_room)
             
             # 检查游戏状态
             if room.status != RoomStatus.PLAYING:
-                return False, "游戏尚未开始"
+                raise GameNotStartedError()
             
             # 检查用户是否在房间中
             if not room.is_player(user_id):
-                return False, "您不在房间中"
+                raise UserNotInRoomError(user_id)
             
             # 检查用户是否已被淘汰
             if room.is_eliminated(user_id):
-                return False, "您已被淘汰"
+                raise PlayerEliminatedError(user_id)
             
             # 根据用户身份返回对应词语
             if user_id in room.undercovers:
@@ -214,8 +256,17 @@ class GameService:
                 word = room.words['civilian']
 
             return True, f"您的词语：{word}"
+            
+        except DomainException as e:
+            logger.warning(f"业务异常: {e.error_code} - {e.message}", extra={'details': e.details})
+            return False, e.message
+            
+        except RepositoryException as e:
+            log_exception(logger, e, {'user_id': user_id})
+            return False, "显示词语失败，请稍后重试"
+            
         except Exception as e:
-            print(f"显示词语异常: {e}")
+            log_exception(logger, e, {'user_id': user_id})
             return False, "显示词语时发生错误"
     
     def vote_player(self, user_id: str, target_index: int) -> Tuple[bool, str]:
@@ -224,45 +275,54 @@ class GameService:
             # 获取用户信息
             user = self.user_repo.get(user_id)
             if not user or not user.has_joined_room():
-                return False, "您不在任何房间中"
+                raise UserNotInRoomError(user_id)
             
             # 获取房间信息
             room = self.room_repo.get(user.current_room)
             if not room:
-                return False, "房间不存在"
+                raise RoomNotFoundError(user.current_room)
             
             # 检查游戏状态
             if room.status != RoomStatus.PLAYING:
-                return False, "游戏尚未开始"
+                raise GameNotStartedError()
             
             # 检查是否为房主
             if not room.is_creator(user_id):
-                return False, "只有房主才能投票"
+                raise RoomPermissionError(user_id, "投票")
             
             # 检查序号是否有效
             if target_index < 1 or target_index > room.get_player_count():
-                return False, "序号无效"
+                raise InvalidPlayerIndexError(target_index, room.get_player_count())
             
             # 获取目标玩家
             target_player = room.players[target_index - 1]
             
             # 检查目标玩家是否已被淘汰
             if room.is_eliminated(target_player):
-                return False, "该玩家已被淘汰"
+                raise PlayerEliminatedError(target_player)
             
             # 记录被淘汰的玩家
             room.eliminated.append(target_player)
             
             # 保存房间信息
-            if not self.room_repo.save(room):
-                return False, "投票失败"
+            self.room_repo.save(room)
             
             # 状态机：投票事件保持在 PLAYING
             if not self.fsm.can_transition(GameState.PLAYING, GameEvent.VOTE):
-                return False, "当前状态无法投票"
+                raise RoomStateError(
+                    message="当前状态无法投票",
+                    error_code="ROOM-STATE-003",
+                    details={'room_id': room.room_id, 'status': room.status.value}
+                )
 
             # 检查游戏是否结束
             game_ended, result_message = self._check_game_end(room)
+            
+            log_business_event(logger, "投票淘汰", 
+                             user_id=user_id, room_id=room.room_id, 
+                             target_index=target_index, target_player=target_player,
+                             game_ended=game_ended)
+            
             if game_ended:
                 if self.push and self.push.enabled():
                     self._push_room_status(room)
@@ -270,8 +330,17 @@ class GameService:
             if self.push and self.push.enabled():
                 self._push_room_status(room)
             return True, "投票成功"
+            
+        except DomainException as e:
+            logger.warning(f"业务异常: {e.error_code} - {e.message}", extra={'details': e.details})
+            return False, e.message
+            
+        except RepositoryException as e:
+            log_exception(logger, e, {'user_id': user_id})
+            return False, "投票失败，请稍后重试"
+            
         except Exception as e:
-            print(f"投票异常: {e}")
+            log_exception(logger, e, {'user_id': user_id})
             return False, "投票时发生错误"
     
     def show_status(self, user_id: str) -> Tuple[bool, str]:
@@ -280,12 +349,12 @@ class GameService:
             # 获取用户信息
             user = self.user_repo.get(user_id)
             if not user or not user.has_joined_room():
-                return False, "您不在任何房间中"
+                raise UserNotInRoomError(user_id)
             
             # 获取房间信息
             room = self.room_repo.get(user.current_room)
             if not room:
-                return False, "房间不存在"
+                raise RoomNotFoundError(user.current_room)
             
             # 构建状态信息
             status_lines = []
@@ -330,8 +399,17 @@ class GameService:
                     status_lines.append("您是房主，可通过't+序号'投票淘汰玩家")
             
             return True, "\n".join(status_lines)
+            
+        except DomainException as e:
+            logger.warning(f"业务异常: {e.error_code} - {e.message}", extra={'details': e.details})
+            return False, e.message
+            
+        except RepositoryException as e:
+            log_exception(logger, e, {'user_id': user_id})
+            return False, "显示状态失败，请稍后重试"
+            
         except Exception as e:
-            print(f"显示状态异常: {e}")
+            log_exception(logger, e, {'user_id': user_id})
             return False, "显示状态时发生错误"
     
     def _generate_unique_room_id(self) -> str:

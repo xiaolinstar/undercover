@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import List, Optional
+from typing import List
 from src.services.game_service import GameService
 from src.config.commands_config import COMMAND_ALIASES
 import re

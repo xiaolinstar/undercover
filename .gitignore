@@ -49,3 +49,6 @@ env/
 # Test cache files
 tests/**/__pycache__/
 tests/**/*.py[cod]
+
+.env
+k8s/**/*.env

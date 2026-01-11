@@ -10,6 +10,14 @@ import redis
 from typing import Optional
 from src.models.room import Room
 from src.config.game_config import GameConfig
+from src.exceptions import (
+    RedisConnectionError,
+    SerializationError,
+    DataAccessError
+)
+from src.utils.logger import setup_logger, log_exception
+
+logger = setup_logger(__name__)
 
 
 class RoomRepository:
@@ -23,8 +31,18 @@ class RoomRepository:
         """获取房间在Redis中的键"""
         return f"{self.prefix}{room_id}"
     
-    def save(self, room: Room) -> bool:
-        """保存房间信息"""
+    def save(self, room: Room) -> None:
+        """
+        保存房间信息
+        
+        Args:
+            room: 房间对象
+            
+        Raises:
+            RedisConnectionError: Redis连接失败
+            SerializationError: 序列化失败
+            DataAccessError: 其他数据访问错误
+        """
         try:
             # 更新最后活跃时间
             room.update_last_active()
@@ -40,18 +58,55 @@ class RoomRepository:
                 GameConfig.ROOM_TIMEOUT_SECONDS, 
                 room_json
             )
-            return True
+            
+            logger.debug(f"房间保存成功", extra={'room_id': room.room_id})
+            
+        except redis.ConnectionError as e:
+            error = RedisConnectionError("保存房间", cause=e)
+            log_exception(logger, error, {'room_id': room.room_id})
+            raise error
+            
+        except (TypeError, ValueError) as e:
+            error = SerializationError(
+                message="房间数据序列化失败",
+                error_code="REPO-INVALID-002",
+                details={'room_id': room.room_id},
+                cause=e
+            )
+            log_exception(logger, error)
+            raise error
+            
         except Exception as e:
-            print(f"保存房间失败: {e}")
-            return False
+            error = DataAccessError(
+                message="保存房间数据失败",
+                error_code="REPO-DATA-001",
+                details={'room_id': room.room_id},
+                cause=e
+            )
+            log_exception(logger, error)
+            raise error
     
     def get(self, room_id: str) -> Optional[Room]:
-        """获取房间信息"""
+        """
+        获取房间信息
+        
+        Args:
+            room_id: 房间号
+            
+        Returns:
+            房间对象，不存在时返回 None
+            
+        Raises:
+            RedisConnectionError: Redis连接失败
+            SerializationError: 反序列化失败
+            DataAccessError: 其他数据访问错误
+        """
         try:
             key = self._get_key(room_id)
             room_json = self.redis.get(key)
             
             if room_json is None:
+                logger.debug(f"房间不存在", extra={'room_id': room_id})
                 return None
             
             # 处理bytes类型的JSON数据
@@ -59,26 +114,98 @@ class RoomRepository:
                 room_json = room_json.decode('utf-8')
             
             room_data = json.loads(room_json)
-            return Room.from_dict(room_data)
+            room = Room.from_dict(room_data)
+            
+            logger.debug(f"房间获取成功", extra={'room_id': room_id})
+            return room
+            
+        except redis.ConnectionError as e:
+            error = RedisConnectionError("获取房间", cause=e)
+            log_exception(logger, error, {'room_id': room_id})
+            raise error
+            
+        except (TypeError, ValueError, KeyError) as e:
+            error = SerializationError(
+                message="房间数据反序列化失败",
+                error_code="REPO-INVALID-002",
+                details={'room_id': room_id},
+                cause=e
+            )
+            log_exception(logger, error)
+            raise error
+            
         except Exception as e:
-            print(f"获取房间失败: {e}")
-            return None
+            error = DataAccessError(
+                message="获取房间数据失败",
+                error_code="REPO-DATA-001",
+                details={'room_id': room_id},
+                cause=e
+            )
+            log_exception(logger, error)
+            raise error
     
-    def delete(self, room_id: str) -> bool:
-        """删除房间"""
+    def delete(self, room_id: str) -> None:
+        """
+        删除房间
+        
+        Args:
+            room_id: 房间号
+            
+        Raises:
+            RedisConnectionError: Redis连接失败
+            DataAccessError: 其他数据访问错误
+        """
         try:
             key = self._get_key(room_id)
             self.redis.delete(key)
-            return True
+            logger.debug(f"房间删除成功", extra={'room_id': room_id})
+            
+        except redis.ConnectionError as e:
+            error = RedisConnectionError("删除房间", cause=e)
+            log_exception(logger, error, {'room_id': room_id})
+            raise error
+            
         except Exception as e:
-            print(f"删除房间失败: {e}")
-            return False
+            error = DataAccessError(
+                message="删除房间数据失败",
+                error_code="REPO-DATA-001",
+                details={'room_id': room_id},
+                cause=e
+            )
+            log_exception(logger, error)
+            raise error
     
     def exists(self, room_id: str) -> bool:
-        """检查房间是否存在"""
+        """
+        检查房间是否存在
+        
+        Args:
+            room_id: 房间号
+            
+        Returns:
+            存在返回 True，否则返回 False
+            
+        Raises:
+            RedisConnectionError: Redis连接失败
+            DataAccessError: 其他数据访问错误
+        """
         try:
             key = self._get_key(room_id)
-            return self.redis.exists(key) > 0
+            exists = self.redis.exists(key) > 0
+            logger.debug(f"房间存在性检查", extra={'room_id': room_id, 'exists': exists})
+            return exists
+            
+        except redis.ConnectionError as e:
+            error = RedisConnectionError("检查房间存在性", cause=e)
+            log_exception(logger, error, {'room_id': room_id})
+            raise error
+            
         except Exception as e:
-            print(f"检查房间存在性失败: {e}")
-            return False
+            error = DataAccessError(
+                message="检查房间存在性失败",
+                error_code="REPO-DATA-001",
+                details={'room_id': room_id},
+                cause=e
+            )
+            log_exception(logger, error)
+            raise error

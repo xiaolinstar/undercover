@@ -9,6 +9,14 @@ import json
 import redis
 from typing import Optional
 from src.models.user import User
+from src.exceptions import (
+    RedisConnectionError,
+    SerializationError,
+    DataAccessError
+)
+from src.utils.logger import setup_logger, log_exception
+
+logger = setup_logger(__name__)
 
 
 class UserRepository:
@@ -22,8 +30,18 @@ class UserRepository:
         """获取用户在Redis中的键"""
         return f"{self.prefix}{user_id}"
     
-    def save(self, user: User) -> bool:
-        """保存用户信息"""
+    def save(self, user: User) -> None:
+        """
+        保存用户信息
+        
+        Args:
+            user: 用户对象
+            
+        Raises:
+            RedisConnectionError: Redis连接失败
+            SerializationError: 序列化失败
+            DataAccessError: 其他数据访问错误
+        """
         try:
             # 转换为字典并序列化
             user_data = user.to_dict()
@@ -32,18 +50,55 @@ class UserRepository:
             # 保存到Redis
             key = self._get_key(user.openid)
             self.redis.set(key, user_json)
-            return True
+            
+            logger.debug(f"用户保存成功", extra={'user_id': user.openid})
+            
+        except redis.ConnectionError as e:
+            error = RedisConnectionError("保存用户", cause=e)
+            log_exception(logger, error, {'user_id': user.openid})
+            raise error
+            
+        except (TypeError, ValueError) as e:
+            error = SerializationError(
+                message="用户数据序列化失败",
+                error_code="REPO-INVALID-002",
+                details={'user_id': user.openid},
+                cause=e
+            )
+            log_exception(logger, error)
+            raise error
+            
         except Exception as e:
-            print(f"保存用户失败: {e}")
-            return False
+            error = DataAccessError(
+                message="保存用户数据失败",
+                error_code="REPO-DATA-001",
+                details={'user_id': user.openid},
+                cause=e
+            )
+            log_exception(logger, error)
+            raise error
     
     def get(self, user_id: str) -> Optional[User]:
-        """获取用户信息"""
+        """
+        获取用户信息
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            用户对象，不存在时返回 None
+            
+        Raises:
+            RedisConnectionError: Redis连接失败
+            SerializationError: 反序列化失败
+            DataAccessError: 其他数据访问错误
+        """
         try:
             key = self._get_key(user_id)
             user_json = self.redis.get(key)
             
             if user_json is None:
+                logger.debug(f"用户不存在", extra={'user_id': user_id})
                 return None
             
             # 处理bytes类型的JSON数据
@@ -51,17 +106,63 @@ class UserRepository:
                 user_json = user_json.decode('utf-8')
             
             user_data = json.loads(user_json)
-            return User.from_dict(user_data)
+            user = User.from_dict(user_data)
+            
+            logger.debug(f"用户获取成功", extra={'user_id': user_id})
+            return user
+            
+        except redis.ConnectionError as e:
+            error = RedisConnectionError("获取用户", cause=e)
+            log_exception(logger, error, {'user_id': user_id})
+            raise error
+            
+        except (TypeError, ValueError, KeyError) as e:
+            error = SerializationError(
+                message="用户数据反序列化失败",
+                error_code="REPO-INVALID-002",
+                details={'user_id': user_id},
+                cause=e
+            )
+            log_exception(logger, error)
+            raise error
+            
         except Exception as e:
-            print(f"获取用户失败: {e}")
-            return None
+            error = DataAccessError(
+                message="获取用户数据失败",
+                error_code="REPO-DATA-001",
+                details={'user_id': user_id},
+                cause=e
+            )
+            log_exception(logger, error)
+            raise error
     
-    def delete(self, user_id: str) -> bool:
-        """删除用户"""
+    def delete(self, user_id: str) -> None:
+        """
+        删除用户
+        
+        Args:
+            user_id: 用户ID
+            
+        Raises:
+            RedisConnectionError: Redis连接失败
+            DataAccessError: 其他数据访问错误
+        """
         try:
             key = self._get_key(user_id)
             self.redis.delete(key)
-            return True
+            logger.debug(f"用户删除成功", extra={'user_id': user_id})
+            
+        except redis.ConnectionError as e:
+            error = RedisConnectionError("删除用户", cause=e)
+            log_exception(logger, error, {'user_id': user_id})
+            raise error
+            
         except Exception as e:
-            print(f"删除用户失败: {e}")
-            return False
+            error = DataAccessError(
+                message="删除用户数据失败",
+                error_code="REPO-DATA-001",
+                details={'user_id': user_id},
+                cause=e
+            )
+            log_exception(logger, error)
+            raise error
