@@ -37,13 +37,13 @@ class MessageService:
         try:
             # 解析消息
             msg = parse_message(xml_data)
-            logger.info(f"解析微信消息: 类型={msg.type}, 用户={msg.from_user_id}")
+            logger.info(f"解析微信消息: 类型={msg.type}, 用户={msg.source}")
             
             # 根据消息类型处理
             if msg.type == 'text':
-                response_content = self._handle_text_message(msg.from_user_id, msg.content)
+                response_content = self._handle_text_message(msg.source, msg.content)
             elif msg.type == 'event':
-                response_content = self._handle_event_message(msg.from_user_id, msg.event)
+                response_content = self._handle_event_message(msg.source, msg.event)
             else:
                 response_content = HELP_MESSAGES["INSTRUCTIONS"]
             
