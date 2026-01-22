@@ -70,7 +70,7 @@ jobs:
             
             # 1. 检出/更新配置
             echo ">>> Updating configuration files..."
-            cd ~/PycharmProjects/undercover || { echo "Project directory not found"; exit 1; }
+            cd ~/PycharmProjects/mp-undercover || { echo "Project directory not found"; exit 1; }
             git pull
             
             # 2. 定位环境目录
@@ -90,7 +90,7 @@ jobs:
             
             # 5. 更新并应用配置
             echo ">>> Updating image to $SHA and applying to cluster..."
-            kustomize edit set image undercover=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:$SHA
+            kustomize edit set image mp-undercover=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:$SHA
             kubectl apply -k .
             
             # 6. 验证滚动更新状态

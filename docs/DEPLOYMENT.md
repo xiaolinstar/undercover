@@ -40,7 +40,7 @@
 
 服务器上的项目将部署在以下目录：
 ```
-~/projects/undercover/
+~/projects/mp-undercover/
 ├── app.py
 ├── docker-compose.yml
 ├── .env
@@ -53,8 +53,8 @@
 
 1. 克隆项目到服务器：
 ```bash
-git clone https://github.com/your-username/undercover.git
-cd undercover
+git clone https://github.com/your-username/mp-undercover.git
+cd mp-undercover
 ```
 
 2. 配置环境变量：

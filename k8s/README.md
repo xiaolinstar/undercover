@@ -31,7 +31,7 @@ Kustomize 会通过 `secretGenerator` 自动将此文件转换为 K8s Secret。
 在 `prod/app-deploy.yaml` 中更新镜像仓库地址：
 
 ```yaml
-image: your-registry/undercover:latest
+image: your-registry/mp-undercover:latest
 ```
 
 ## 部署步骤
