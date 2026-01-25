@@ -1,9 +1,9 @@
 [project]
 name = "mp-undercover"
 version = "0.1.0"
-description = "WeChat Undercover Game"
+description = "WeChat Undercover Table Game"
 authors = [
-    {name = "Xiaolin"}
+    {name = "xingxiaolin"}
 ]
 readme = "README.md"
 requires-python = ">=3.11"

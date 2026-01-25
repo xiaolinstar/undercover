@@ -21,7 +21,7 @@ spec:
           image: mp-undercover:latest # 需要推送镜像到仓库后更新此行
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 5000
+            - containerPort: 8000
           envFrom:
             - secretRef:
                 name: wechat-secret
@@ -34,13 +34,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 5000
+              port: 8000
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health
-              port: 5000
+              port: 8000
             initialDelaySeconds: 5
             periodSeconds: 5
 
@@ -64,7 +64,7 @@ spec:
   selector:
     app: web-app
   ports:
-    - port: 5000
-      targetPort: 5000
+    - port: 8000
+      targetPort: 8000
       protocol: TCP
   type: ClusterIP

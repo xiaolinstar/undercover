@@ -11,8 +11,8 @@ app = AppFactory.create_app()
 
 def main():
     """主逻辑入口"""
-    # 运行应用
-    port = int(os.environ.get('PORT', 8000))
+    # 运行应用，仅在开发环境使用
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
 
 if __name__ == '__main__':
