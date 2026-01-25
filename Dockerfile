@@ -1,13 +1,25 @@
-FROM python:3.11-alpine
+# 使用官方 Python 运行时作为父镜像
+FROM python:3.13.2-slim
 
+# 设置工作目录
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install -i https://mirrors.tencent.com/pypi/simple --upgrade pip
-RUN pip install --no-cache-dir -i https://mirrors.tencent.com/pypi/simple -r requirements.txt
+# 设置环境变量
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FLASK_APP=src.main:app
 
+# 复制依赖文件
+COPY requirements.txt .
+
+# 安装 Python 依赖
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制项目代码
 COPY . .
 
-EXPOSE 5000
+# 暴露端口
+EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "src.main:app", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info"]
+# 启动命令 (使用 gunicorn)
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "src.main:app"]

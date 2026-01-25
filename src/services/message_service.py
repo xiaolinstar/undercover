@@ -11,7 +11,7 @@ from wechatpy.utils import check_signature
 from wechatpy.replies import create_reply
 from wechatpy.exceptions import InvalidSignatureException
 from src.services.game_service import GameService
-from src.messages import HELP_MESSAGES
+from src.config.messages import HELP_MESSAGES
 from src.strategies.commands import CommandRouter
 
 logger = logging.getLogger(__name__)

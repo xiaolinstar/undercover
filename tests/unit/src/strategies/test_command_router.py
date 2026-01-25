@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from src.strategies.commands import CommandRouter
-from src.messages import HELP_MESSAGES, ERROR_MESSAGES
+from src.config.messages import HELP_MESSAGES, ERROR_MESSAGES
 
 
 class StubGameService:

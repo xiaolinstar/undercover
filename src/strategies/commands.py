@@ -7,7 +7,7 @@ from src.services.game_service import GameService
 from src.config.commands_config import COMMAND_ALIASES
 import re
 
-from src.messages import HELP_MESSAGES, ERROR_MESSAGES
+from src.config.messages import HELP_MESSAGES, ERROR_MESSAGES
 
 
 class CommandStrategy:
