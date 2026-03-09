@@ -1,0 +1,33 @@
+<view class="game-status">
+  <!-- 左侧：轮次信息 -->
+  <view class="status-item">
+    <text class="item-label">第</text>
+    <text class="item-value round-value">{{round}}</text>
+    <text class="item-label">轮</text>
+  </view>
+
+  <!-- 中间：阶段信息 -->
+  <view class="status-item phase-item">
+    <text class="phase-icon">{{phaseIcon[phase]}}</text>
+    <text class="phase-text">{{phaseText[phase]}}</text>
+  </view>
+
+  <!-- 右侧：玩家数或倒计时 -->
+  <view class="status-item">
+    <!-- 有倒计时时显示倒计时 -->
+    <view class="countdown-section" wx:if="{{countdown > 0}}">
+      <text class="countdown-text {{showWarning ? 'warning' : ''}}">{{countdownText}}</text>
+    </view>
+    
+    <!-- 没有倒计时时显示玩家数 -->
+    <view class="players-section" wx:else>
+      <text class="players-icon">👥</text>
+      <text class="players-text">{{alivePlayers}}/{{totalPlayers}}</text>
+    </view>
+  </view>
+</view>
+
+<!-- 当前发言玩家提示 -->
+<view class="current-player-tip" wx:if="{{phase === 'describing' && currentPlayerNumber > 0}}">
+  <text class="tip-text">{{currentPlayerNumber}}号玩家正在发言</text>
+</view>

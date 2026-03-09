@@ -1,0 +1,9 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "game-status": "/components/game-status/game-status",
+    "word-display": "/components/word-display/word-display",
+    "player-card": "/components/player-card/player-card",
+    "vote-modal": "/components/vote-modal/vote-modal"
+  }
+}

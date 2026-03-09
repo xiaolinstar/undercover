@@ -1,0 +1,159 @@
+<view class="game-container">
+  <!-- 游戏状态栏 -->
+  <game-status 
+    round="{{currentRound}}"
+    phase="{{gameStatus}}"
+    countdown="{{countdown}}"
+    alive-players="{{alivePlayersCount}}"
+    total-players="{{totalPlayersCount}}"
+    current-player-number="{{currentSpeakerNumber}}"
+  />
+
+  <!-- 游戏进行中 -->
+  <view class="game-content" wx:if="{{gameStatus !== 'finished'}}">
+    <!-- 词语展示区 -->
+    <view class="word-section" wx:if="{{word && !showWord}}">
+      <word-display 
+        word="{{word}}"
+        role="{{role}}"
+        show-word="{{false}}"
+        show-role="{{true}}"
+        hint="点击查看你的词语"
+        bind:show="handleShowWord"
+      />
+    </view>
+    
+    <!-- 已查看词语 -->
+    <view class="word-display-section" wx:if="{{showWord}}">
+      <view class="word-card">
+        <text class="word-label">你的词语</text>
+        <text class="word-text">{{word}}</text>
+        <view class="role-badge {{role}}">
+          {{role === 'civilian' ? '平民' : '卧底'}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 描述环节：发言历史 -->
+    <view class="descriptions-section" wx:if="{{gameStatus === 'describing' && descriptions.length > 0}}">
+      <view class="section-title">发言记录</view>
+      <view class="descriptions-list">
+        <view class="description-item {{item.playerNumber === currentSpeakerNumber ? 'speaking' : ''}}" 
+              wx:for="{{descriptions}}" 
+              wx:key="playerNumber">
+          <view class="description-header">
+            <text class="player-number">{{item.playerNumber}}号</text>
+            <text class="player-name">{{item.nickname}}</text>
+          </view>
+          <text class="description-text">{{item.description}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 描述输入弹窗 -->
+    <view class="description-input-modal" wx:if="{{showDescriptionInput}}">
+      <view class="modal-mask" bindtap="handleSkipDescription"></view>
+      <view class="modal-content" catchtap="preventBubble">
+        <view class="modal-header">
+          <text class="modal-title">轮到你发言了</text>
+        </view>
+        <view class="modal-body">
+          <textarea 
+            class="description-textarea"
+            placeholder="请描述你的词语（不要直接说出词语）"
+            value="{{descriptionText}}"
+            bindinput="handleDescriptionInput"
+            maxlength="200"
+            auto-height
+          />
+          <view class="char-count">{{descriptionText.length}}/200</view>
+        </view>
+        <view class="modal-footer">
+          <button class="skip-btn" bindtap="handleSkipDescription">跳过</button>
+          <button class="submit-btn" bindtap="handleSubmitDescription">发言</button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 投票状态提示 -->
+    <view class="voting-status" wx:if="{{gameStatus === 'voting' && hasVoted}}">
+      <view class="voted-tip">
+        <text class="voted-icon">✓</text>
+        <text class="voted-text">已投票，等待其他玩家...</text>
+      </view>
+    </view>
+
+    <!-- 玩家列表 -->
+    <view class="players-section">
+      <view class="section-title">玩家列表</view>
+      <view class="players-list">
+        <player-card 
+          wx:for="{{players}}"
+          wx:key="playerId"
+          player="{{item}}"
+          show-number="{{true}}"
+          show-status="{{true}}"
+          is-current-speaker="{{item.playerNumber === currentSpeakerNumber}}"
+          is-eliminated="{{item.playerNumber === eliminatedPlayerNumber}}"
+          vote-count="{{voteCounts[item.playerId] || 0}}"
+        />
+      </view>
+    </view>
+  </view>
+
+  <!-- 游戏结束 -->
+  <view class="game-finished {{showResultAnimation ? 'animate' : ''}}" wx:if="{{gameStatus === 'finished'}}">
+    <!-- 胜利方 -->
+    <view class="winner-section {{winner}}">
+      <view class="confetti" wx:if="{{showResultAnimation}}">
+        <text class="confetti-item" wx:for="{{20}}" wx:key="index">🎉</text>
+      </view>
+      <text class="winner-title">{{winner === 'civilian' ? '平民胜利！' : '卧底胜利！'}}</text>
+      <text class="winner-subtitle">{{winner === 'civilian' ? '恭喜平民阵营获胜' : '卧底成功隐藏身份'}}</text>
+    </view>
+
+    <!-- 词语揭示 -->
+    <view class="words-reveal">
+      <view class="reveal-item civilian">
+        <text class="reveal-label">平民词语</text>
+        <text class="reveal-word">{{words.civilian}}</text>
+      </view>
+      <view class="reveal-item undercover">
+        <text class="reveal-label">卧底词语</text>
+        <text class="reveal-word">{{words.undercover}}</text>
+      </view>
+    </view>
+
+    <!-- 玩家角色 -->
+    <view class="players-result">
+      <view class="result-title">玩家身份</view>
+      <view class="result-list">
+        <view class="result-item {{item.role}}" wx:for="{{players}}" wx:key="playerId">
+          <image class="result-avatar" src="{{item.avatar}}" />
+          <text class="result-name">{{item.nickname}}</text>
+          <view class="result-role {{item.role}}">
+            {{item.role === 'civilian' ? '平民' : '卧底'}}
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="finished-actions">
+      <button class="play-again-button" bindtap="handlePlayAgain">再来一局</button>
+      <button class="back-home-button" bindtap="handleBackToHome">返回首页</button>
+    </view>
+  </view>
+</view>
+
+<!-- 投票弹窗 -->
+<vote-modal 
+  visible="{{showVoteModal}}"
+  players="{{alivePlayers}}"
+  current-player-id="{{currentPlayerId}}"
+  title="投票环节"
+  hint="请选择你要投票的玩家"
+  countdown="{{30}}"
+  bind:confirm="handleVoteConfirm"
+  bind:cancel="handleVoteCancel"
+/>

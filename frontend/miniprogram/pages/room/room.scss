@@ -1,0 +1,152 @@
+.room-container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 40rpx 40rpx 300rpx;
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 40rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20rpx;
+  margin-bottom: 40rpx;
+}
+
+.room-code-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.room-code-label {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 10rpx;
+}
+
+.room-code {
+  font-size: 64rpx;
+  font-weight: bold;
+  color: #ffffff;
+  letter-spacing: 8rpx;
+}
+
+.share-button {
+  background: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  border: 1rpx solid rgba(255, 255, 255, 0.5);
+}
+
+.players-section {
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  margin-bottom: 40rpx;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+}
+
+.player-count {
+  font-size: 28rpx;
+  color: #999999;
+}
+
+.player-list {
+  min-height: 300rpx;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  padding: 30rpx;
+  background: #f5f5f5;
+  border-radius: 10rpx;
+  margin-bottom: 20rpx;
+}
+
+.player-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+}
+
+.player-info {
+  flex: 1;
+}
+
+.player-name {
+  display: block;
+  font-size: 28rpx;
+  color: #333333;
+  margin-bottom: 5rpx;
+}
+
+.player-number {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.player-badge {
+  padding: 10rpx 20rpx;
+  background: #667eea;
+  color: #ffffff;
+  font-size: 24rpx;
+  border-radius: 10rpx;
+}
+
+.room-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40rpx;
+  background: #ffffff;
+  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.start-button {
+  width: 100%;
+  height: 88rpx;
+  background: #667eea;
+  color: #ffffff;
+  border-radius: 44rpx;
+  margin-bottom: 20rpx;
+  
+  &::after {
+    border: none;
+  }
+}
+
+.wait-tip {
+  display: block;
+  text-align: center;
+  font-size: 28rpx;
+  color: #999999;
+  margin-bottom: 20rpx;
+}
+
+.leave-button {
+  width: 100%;
+  height: 88rpx;
+  background: #ffffff;
+  color: #666666;
+  border: 2rpx solid #e5e5e5;
+  border-radius: 44rpx;
+  
+  &::after {
+    border: none;
+  }
+}

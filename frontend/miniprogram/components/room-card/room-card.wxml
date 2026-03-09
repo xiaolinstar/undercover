@@ -1,0 +1,36 @@
+<view class="room-card" bindtap="handleTap">
+  <!-- 房间头部 -->
+  <view class="room-header">
+    <view class="room-code-section">
+      <text class="room-label">房间号</text>
+      <text class="room-code">{{room.roomCode}}</text>
+    </view>
+    <view class="room-status" style="background-color: {{statusColor[room.status]}}">
+      {{statusText[room.status]}}
+    </view>
+  </view>
+
+  <!-- 房间信息 -->
+  <view class="room-info">
+    <view class="info-item">
+      <text class="info-icon">👥</text>
+      <text class="info-text">{{room.playerCount || 0}}/{{room.maxPlayers || 6}}人</text>
+    </view>
+    <view class="info-item" wx:if="{{room.gameType}}">
+      <text class="info-icon">🎮</text>
+      <text class="info-text">{{room.gameType === 'undercover' ? '谁是卧底' : '自由模式'}}</text>
+    </view>
+  </view>
+
+  <!-- 房间创建时间 -->
+  <view class="room-footer" wx:if="{{showCreateTime && room.createTime}}">
+    <text class="create-time">创建于 {{room.createTime}}</text>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="room-actions" wx:if="{{room.status === 'waiting'}}">
+    <button class="enter-button" catchtap="handleEnterRoom">
+      进入房间
+    </button>
+  </view>
+</view>

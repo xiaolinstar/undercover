@@ -1,0 +1,56 @@
+<view class="index-container">
+  <!-- 顶部用户信息 -->
+  <view class="header">
+    <view class="user-info" bindtap="handleGoToProfile">
+      <image class="avatar" src="{{userInfo.avatar || '/assets/images/default-avatar.png'}}" />
+      <text class="nickname">{{userInfo.nickname || '微信用户'}}</text>
+    </view>
+  </view>
+
+  <!-- 主内容区 -->
+  <view class="main-content">
+    <view class="game-title">
+      <text class="title-text">🎭 谁是卧底</text>
+      <text class="title-subtitle">聚会桌游</text>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-buttons">
+      <button class="primary-button" bindtap="handleCreateRoom">
+        创建房间
+      </button>
+      <button class="secondary-button" bindtap="handleShowJoinModal">
+        加入房间
+      </button>
+    </view>
+
+    <!-- 游戏规则 -->
+    <view class="rules-section" bindtap="handleShowRules">
+      <text class="rules-title">📖 游戏规则</text>
+      <text class="rules-desc">点击查看详细规则</text>
+    </view>
+  </view>
+
+  <!-- 加入房间弹窗 -->
+  <view class="modal-mask" wx:if="{{showJoinModal}}" bindtap="handleHideJoinModal">
+    <view class="modal-container" catchtap>
+      <view class="modal-header">
+        <text class="modal-title">加入房间</text>
+      </view>
+      <view class="modal-body">
+        <input 
+          class="room-code-input"
+          type="number"
+          maxlength="4"
+          placeholder="请输入4位房间号"
+          value="{{roomCode}}"
+          bindinput="handleRoomCodeInput"
+        />
+      </view>
+      <view class="modal-footer">
+        <button class="cancel-button" bindtap="handleHideJoinModal">取消</button>
+        <button class="confirm-button" bindtap="handleJoinRoom">加入</button>
+      </view>
+    </view>
+  </view>
+</view>

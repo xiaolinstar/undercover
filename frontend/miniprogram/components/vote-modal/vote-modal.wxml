@@ -1,0 +1,51 @@
+<!-- 遮罩层 -->
+<view class="vote-modal-mask" wx:if="{{visible}}" bindtap="handleCancel">
+  <!-- 弹窗内容 -->
+  <view class="vote-modal" catchtap="preventBubble">
+    <!-- 头部 -->
+    <view class="modal-header">
+      <text class="modal-title">{{title}}</text>
+      <view class="countdown" wx:if="{{countdown > 0}}">
+        <text class="countdown-text">{{countdownText}}</text>
+      </view>
+    </view>
+
+    <!-- 提示文本 -->
+    <view class="modal-hint">
+      <text>{{hint}}</text>
+    </view>
+
+    <!-- 玩家列表 -->
+    <view class="players-list">
+      <view 
+        class="player-item {{item.playerId === selectedPlayerId ? 'selected' : ''}} {{item.playerId === currentPlayerId ? 'disabled' : ''}}"
+        wx:for="{{players}}"
+        wx:key="playerId"
+        data-player-id="{{item.playerId}}"
+        bindtap="handleSelectPlayer"
+      >
+        <image class="player-avatar" src="{{item.avatar}}" mode="aspectFill" />
+        <view class="player-info">
+          <text class="player-name">{{item.nickname}}</text>
+          <text class="player-number">{{item.playerNumber}}号玩家</text>
+        </view>
+        
+        <!-- 选中标识 -->
+        <view class="selected-icon" wx:if="{{item.playerId === selectedPlayerId}}">
+          ✓
+        </view>
+        
+        <!-- 禁用标识 -->
+        <view class="disabled-mask" wx:if="{{item.playerId === currentPlayerId}}">
+          <text>自己</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="modal-footer">
+      <button class="cancel-button" bindtap="handleCancel">取消</button>
+      <button class="confirm-button" bindtap="handleConfirm">确认投票</button>
+    </view>
+  </view>
+</view>

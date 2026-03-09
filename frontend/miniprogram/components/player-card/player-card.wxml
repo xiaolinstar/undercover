@@ -1,0 +1,51 @@
+<view 
+  class="player-card {{selected ? 'selected' : ''}} {{disabled ? 'disabled' : ''}} {{clickable ? 'clickable' : ''}} {{isCurrentSpeaker ? 'speaking' : ''}} {{isEliminated ? 'eliminated' : ''}}"
+  bindtap="handleTap"
+>
+  <!-- 玩家头像区域 -->
+  <view class="player-avatar-section">
+    <image 
+      class="player-avatar" 
+      src="{{player.avatar || defaultAvatar}}" 
+      mode="aspectFill"
+      binderror="handleAvatarError"
+    />
+    
+    <!-- 玩家序号 -->
+    <view class="player-number" wx:if="{{showNumber && player.playerNumber}}">
+      {{player.playerNumber}}
+    </view>
+    
+    <!-- 房主标识 -->
+    <view class="owner-badge" wx:if="{{player.isOwner}}">
+      房主
+    </view>
+    
+    <!-- 当前发言者标识 -->
+    <view class="speaking-indicator" wx:if="{{isCurrentSpeaker}}">
+      <view class="speaking-dot"></view>
+    </view>
+  </view>
+
+  <!-- 玩家信息 -->
+  <view class="player-info">
+    <text class="player-name">{{player.nickname || '未知玩家'}}</text>
+    
+    <!-- 玩家状态 -->
+    <view class="player-status" wx:if="{{showStatus && player.status}}">
+      <view class="status-dot" style="background-color: {{statusColor[player.status]}}"></view>
+      <text class="status-text">{{statusText[player.status]}}</text>
+    </view>
+  </view>
+
+  <!-- 投票数 -->
+  <view class="vote-count-section" wx:if="{{voteCount > 0}}">
+    <text class="vote-count">{{voteCount}}</text>
+    <text class="vote-label">票</text>
+  </view>
+
+  <!-- 选中标识 -->
+  <view class="selected-icon" wx:if="{{selected}}">
+    ✓
+  </view>
+</view>

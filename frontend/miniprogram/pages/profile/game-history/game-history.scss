@@ -1,0 +1,180 @@
+.game-history-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 50%, #f5f5f5 50%);
+  padding-top: 0;
+  box-sizing: border-box;
+}
+
+/* 自定义导航栏 */
+.nav-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 88rpx;
+  padding: 0 30rpx;
+  padding-top: var(--status-bar-height, 20px);
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.nav-back {
+  display: flex;
+  align-items: center;
+  padding: 10rpx 20rpx;
+  cursor: pointer;
+}
+
+.back-icon {
+  font-size: 48rpx;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.back-text {
+  font-size: 28rpx;
+  color: #ffffff;
+  margin-left: 4rpx;
+}
+
+.nav-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.nav-placeholder {
+  width: 120rpx;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 50%, #f5f5f5 50%);
+}
+
+.loading-text {
+  font-size: 32rpx;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* 内容区域 */
+.history-list {
+  padding-top: calc(88rpx + var(--status-bar-height, 20px));
+  padding: 0 30rpx;
+  min-height: calc(100vh - 88rpx - var(--status-bar-height, 20px));
+  box-sizing: border-box;
+}
+
+/* 历史记录项 */
+.history-item {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+}
+
+.item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.date {
+  font-size: 28rpx;
+  color: #666666;
+  font-weight: 500;
+}
+
+.result-badge {
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+
+  &.win {
+    background: #e8f5e9;
+    color: #4caf50;
+  }
+
+  &.lose {
+    background: #ffebee;
+    color: #f44336;
+  }
+}
+
+.item-body {
+  .detail-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16rpx;
+    font-size: 28rpx;
+    color: #333333;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .label {
+    width: 100rpx;
+    color: #666666;
+    font-weight: 500;
+  }
+
+  .role {
+    flex: 1;
+    font-weight: 500;
+
+    &.civilian {
+      color: #2196f3;
+    }
+
+    &.spy {
+      color: #ff9800;
+    }
+  }
+
+  .word {
+    flex: 1;
+    color: #666666;
+  }
+
+  .duration {
+    flex: 1;
+    color: #666666;
+  }
+
+  .players {
+    flex: 1;
+    color: #666666;
+  }
+}
+
+/* 加载更多 */
+.loading-more {
+  text-align: center;
+  padding: 40rpx 0;
+}
+
+.no-more {
+  text-align: center;
+  padding: 40rpx 0;
+}
+
+.no-more-text {
+  font-size: 28rpx;
+  color: #999999;
+}

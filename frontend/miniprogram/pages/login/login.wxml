@@ -1,0 +1,20 @@
+<view class="login-container">
+  <view class="login-header">
+    <view class="logo">🎭</view>
+    <text class="title">谁是卧底</text>
+    <text class="subtitle">聚会桌游</text>
+  </view>
+
+  <button 
+    class="login-button" 
+    bindtap="handleLogin"
+    loading="{{loading}}"
+    disabled="{{loading}}"
+  >
+    <text class="button-text">微信登录</text>
+  </button>
+
+  <view class="login-footer">
+    <text class="footer-text">登录即表示同意用户协议</text>
+  </view>
+</view>

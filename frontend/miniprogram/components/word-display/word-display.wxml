@@ -1,0 +1,31 @@
+<view class="word-display {{animating ? 'animating' : ''}}" bindtap="handleTap">
+  <!-- 未展示状态 -->
+  <view class="word-hidden" wx:if="{{!showWord}}">
+    <view class="hidden-icon">🔐</view>
+    <text class="hidden-hint">{{hint}}</text>
+  </view>
+
+  <!-- 展示状态 -->
+  <view class="word-visible" wx:if="{{showWord}}">
+    <!-- 词语展示 -->
+    <view class="word-section">
+      <text class="word-label">你的词语</text>
+      <text class="word-text">{{word}}</text>
+    </view>
+
+    <!-- 角色展示 -->
+    <view class="role-section" wx:if="{{showRole && role}}">
+      <text class="role-label">你的身份</text>
+      <view class="role-badge" style="background-color: {{roleColor[role]}}">
+        {{roleText[role]}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 装饰元素 -->
+  <view class="decorations" wx:if="{{showWord}}">
+    <view class="decoration-item decoration-1">✨</view>
+    <view class="decoration-item decoration-2">🌟</view>
+    <view class="decoration-item decoration-3">💫</view>
+  </view>
+</view>

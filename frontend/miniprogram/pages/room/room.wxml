@@ -1,0 +1,34 @@
+<view class="room-container">
+  <view class="room-header">
+    <view class="room-code-section">
+      <text class="room-code-label">房间号</text>
+      <text class="room-code" bindtap="handleCopyRoomCode">{{roomCode}}</text>
+    </view>
+    <button class="share-button" size="mini" bindtap="handleShareRoom">分享</button>
+  </view>
+
+  <view class="players-section">
+    <view class="section-header">
+      <text class="section-title">玩家列表</text>
+      <text class="player-count">{{players.length}}/{{maxPlayers}}</text>
+    </view>
+    <view class="player-list">
+      <view class="player-item" wx:for="{{players}}" wx:key="playerId">
+        <image class="player-avatar" src="{{item.avatar || '/assets/images/default-avatar.png'}}" mode="aspectFill" />
+        <view class="player-info">
+          <text class="player-name">{{item.nickname}}</text>
+          <text class="player-number">{{item.playerNumber}}号玩家</text>
+        </view>
+        <view class="player-badge" wx:if="{{item.isOwner}}">房主</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="room-footer">
+    <button class="start-button" bindtap="handleStartGame" wx:if="{{isOwner}}">
+      开始游戏
+    </button>
+    <text class="wait-tip" wx:else>等待房主开始游戏...</text>
+    <button class="leave-button" bindtap="handleLeaveRoom">离开房间</button>
+  </view>
+</view>

@@ -1,0 +1,43 @@
+# 微信小程序
+miniprogram_npm/
+miniprogram/.miniprogram/
+
+# 编译输出
+dist/
+build/
+
+# 依赖
+node_modules/
+
+# 日志
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 临时文件
+*.tmp
+*.temp
+
+# 测试覆盖率
+coverage/
+
+# 微信开发者工具
+.wechat_devtools/
