@@ -1,0 +1,56 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: staging
+
+# 为所有资源添加前缀，避免与生产冲突 (可选)
+# namePrefix: staging-
+
+resources:
+  - ../../base
+
+# 环境变量覆盖
+patchesJson6902:
+  - target:
+      version: v1
+      kind: Deployment
+      name: web-app
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: staging
+
+# Ingress 域名覆盖
+patches:
+  - target:
+      kind: Ingress
+      name: app-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: staging.xiaolin.fun
+
+# Nginx 配置覆盖
+configMapGenerator:
+  - name: nginx-configmap
+    behavior: replace
+    literals:
+      - default.conf=|
+          server {
+              listen 80;
+              server_name staging.xiaolin.fun;
+
+              location / {
+                  proxy_pass http://web-service:8000;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+
+# Secret 生成
+secretGenerator:
+  - name: wechat-secret
+    envs:
+      - .env

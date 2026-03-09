@@ -1,0 +1,49 @@
+services:
+  app:
+    build:
+      context: .
+    container_name: undercover-app
+    ports:
+      - "80:8000"
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Shanghai
+      - REDIS_URL=redis://redis:6379/0
+      - SQLALCHEMY_DATABASE_URI=mysql+pymysql://undercover:undercover@mysql:3306/undercover
+    depends_on:
+      redis:
+        condition: service_started
+      mysql:
+        condition: service_started
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: undercover-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - undercover_redis_data:/data
+    environment:
+      - TZ=Asia/Shanghai
+
+  mysql:
+    image: mysql:8.4
+    container_name: undercover-mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - undercover_mysql_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=undercover
+      - MYSQL_USER=undercover
+      - MYSQL_PASSWORD=undercover
+      - TZ=Asia/Shanghai
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+volumes:
+  undercover_redis_data:
+  undercover_mysql_data:

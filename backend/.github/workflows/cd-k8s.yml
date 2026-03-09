@@ -1,0 +1,118 @@
+name: 谁是卧底 CD (部署)
+
+on:
+  # 当 CI 工作流运行成功时自动触发部署 (默认部署到 staging)
+  workflow_run:
+    workflows: ["谁是卧底 CI (构建)"]
+    types:
+      - completed
+    branches:
+      - main
+  # 支持在 Github Actions 界面点击按钮选择环境部署
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '部署环境'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - prod
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  # 确定环境 (手动触发使用输入值，自动触发默认 staging)
+  TARGET_ENV: ${{ github.event.inputs.environment || 'staging' }}
+
+jobs:
+  # ==========================================
+  # Job 1: 预部署验证 (Validation)
+  # ==========================================
+  validate:
+    name: Manifest Validation
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Dry Run Kustomize Staging
+        run: |
+          cd k8s/overlays/staging
+          touch .env
+          kustomize build . > /dev/null
+          echo "Staging manifest is valid."
+
+      - name: Dry Run Kustomize Production
+        run: |
+          cd k8s/overlays/prod
+          touch .env
+          kustomize build . > /dev/null
+          echo "Production manifest is valid."
+
+  # ==========================================
+  # Job 2: 执行远程部署 (Deploy)
+  # ==========================================
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'staging' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lowercase image name
+        run: echo "IMAGE_NAME_LOWER=${IMAGE_NAME,,}" >> $GITHUB_ENV
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            
+            # 1. 检出/更新配置
+            echo ">>> Updating configuration files..."
+            cd ~/PycharmProjects/mp-undercover || { echo "Project directory not found"; exit 1; }
+            git pull
+            
+            # 2. 定位环境目录
+            cd k8s/overlays/${{ env.TARGET_ENV }}
+            
+            # 3. 注入对应环境密钥
+            echo ">>> Injecting secrets for ${{ env.TARGET_ENV }}..."
+            cat <<EOF > .env
+            WECHAT_TOKEN=${{ env.TARGET_ENV == 'prod' && secrets.PROD_WECHAT_TOKEN || secrets.STAGING_WECHAT_TOKEN }}
+            WECHAT_APP_ID=${{ env.TARGET_ENV == 'prod' && secrets.PROD_WECHAT_APP_ID || secrets.STAGING_WECHAT_APP_ID }}
+            WECHAT_APP_SECRET=${{ env.TARGET_ENV == 'prod' && secrets.PROD_WECHAT_APP_SECRET || secrets.STAGING_WECHAT_APP_SECRET }}
+            EOF
+            
+            # 4. 确定镜像 SHA 标签
+            SHA=${{ github.event.workflow_run.head_sha || github.sha }}
+            
+            # 5. 更新并应用配置
+            echo ">>> Updating image to $SHA and applying to cluster namespace..."
+            kustomize edit set image mp-undercover=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:$SHA
+            kubectl apply -k .
+            
+            # 6. 验证滚动更新状态 (注意：kustomize 可能会改变资源名称，但这里我们没加前缀所以还是 web-app)
+            echo ">>> Waiting for pod rollout in namespace..."
+            # 获取当前 kustomization 中的 namespace (简单解析)
+            NAMESPACE=$(grep "namespace:" kustomization.yaml | awk '{print $2}')
+            kubectl rollout status deployment/web-app -n $NAMESPACE --timeout=120s
+            
+            # 7. 清理敏感临时文件
+            rm .env
+            
+            echo ">>> Deployment to ${{ env.TARGET_ENV }} Successful!"
