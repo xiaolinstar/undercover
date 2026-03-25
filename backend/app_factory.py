@@ -45,6 +45,9 @@ class AppFactory:
         # 配置应用
         app.config.from_object(settings)
 
+        # 添加异常传播配置
+        app.config['PROPAGATE_EXCEPTIONS'] = True
+
         # 初始化扩展
         db.init_app(app)
         migrate.init_app(app, db)

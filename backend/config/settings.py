@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,9 +35,12 @@ class Settings(BaseSettings):
     STAGING_URL: str = ""  # e.g. http://staging-web-service.staging:8000
 
     # WebSocket
-    SOCKETIO_ASYNC_MODE: str = "eventlet"  # eventlet, threading, gevent
+    SOCKETIO_ASYNC_MODE: str = "threading"  # 默认使用 threading 模式，兼容性更好
     SOCKETIO_CORS_ALLOWED_ORIGINS: str = "*"  # 生产环境应限制具体域名
     SOCKETIO_MESSAGE_QUEUE: str = ""  # 未来多实例时使用，如 redis://localhost:6379/1
+
+    # CORS Configuration
+    CORS_ALLOWED_ORIGINS: str = "*"  # 生产环境应限制具体域名
 
     # Snowflake
     SNOWFLAKE_MACHINE_ID: int = 0  # 机器ID，范围0-1023，用于雪花算法
@@ -50,14 +54,17 @@ class Settings(BaseSettings):
     def __init__(self, **values):
         super().__init__(**values)
 
-        # Adjust flags based on environment
+        # 调整 flags 基于环境
         if self.APP_ENV == "prod":
             self.FLASK_DEBUG = False
             self.DEBUG = False
             self.TESTING = False
+            # 生产环境限制 CORS
+            self.SOCKETIO_CORS_ALLOWED_ORIGINS = "https://yourdomain.com"
+            self.CORS_ALLOWED_ORIGINS = "https://yourdomain.com"
         elif self.APP_ENV == "test":
             self.TESTING = True
-            # Optional: ensure debug is consistent for tests
+            # 可选：确保测试时 debug 一致
             # self.FLASK_DEBUG = False
 
 

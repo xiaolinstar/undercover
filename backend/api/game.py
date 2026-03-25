@@ -3,6 +3,15 @@ from flask import jsonify, request, current_app
 from . import api_bp
 from .decorators import login_required
 from backend.models.room import RoomStatus
+from backend.exceptions import (
+    RoomNotFoundException,
+    GameNotStartedError,
+    GameAlreadyStartedError,
+    InsufficientPlayersError,
+    InvalidPlayerStateError,
+    RoomPermissionError,
+    InvalidStateTransitionError
+)
 
 
 @api_bp.route("/game/start", methods=["POST"])
@@ -76,8 +85,24 @@ def start_game():
             "role": 1,
             "status": "DESCRIBING"
         }})
+    except RoomNotFoundException as e:
+        current_app.logger.warning(f"Room not found: {room_id}")
+        return jsonify({"code": 404, "message": "房间不存在", "data": {}}), 404
+    except InsufficientPlayersError as e:
+        current_app.logger.warning(f"Insufficient players: {str(e)}")
+        return jsonify({"code": 400, "message": str(e), "data": {}}), 400
+    except GameAlreadyStartedError as e:
+        current_app.logger.warning(f"Game already started: {str(e)}")
+        return jsonify({"code": 400, "message": "游戏已经开始", "data": {}}), 400
+    except RoomPermissionError as e:
+        current_app.logger.warning(f"Permission denied: {str(e)}")
+        return jsonify({"code": 403, "message": str(e), "data": {}}), 403
+    except InvalidStateTransitionError as e:
+        current_app.logger.warning(f"Invalid state: {str(e)}")
+        return jsonify({"code": 400, "message": str(e), "data": {}}), 400
     except Exception as e:
-        return jsonify({"code": 500, "message": f"Start game failed: {str(e)}", "data": {}}), 500
+        current_app.logger.exception(f"Start game failed: {str(e)}")
+        return jsonify({"code": 500, "message": "系统繁忙，请稍后重试", "data": {}}), 500
 
 
 @api_bp.route("/game/word", methods=["GET"])
@@ -138,8 +163,18 @@ def get_word():
             "word": word_info.get('word', '苹果'),
             "role": word_info.get('role', 1)
         }})
+    except RoomNotFoundException as e:
+        current_app.logger.warning(f"Room not found: {room_id}")
+        return jsonify({"code": 404, "message": "房间不存在", "data": {}}), 404
+    except GameNotStartedError as e:
+        current_app.logger.warning(f"Game not started: {str(e)}")
+        return jsonify({"code": 400, "message": "游戏尚未开始", "data": {}}), 400
+    except InvalidPlayerStateError as e:
+        current_app.logger.warning(f"Invalid player state: {str(e)}")
+        return jsonify({"code": 400, "message": str(e), "data": {}}), 400
     except Exception as e:
-        return jsonify({"code": 500, "message": f"Get word failed: {str(e)}", "data": {}}), 500
+        current_app.logger.exception(f"Get word failed: {str(e)}")
+        return jsonify({"code": 500, "message": "系统繁忙，请稍后重试", "data": {}}), 500
 
 
 @api_bp.route("/game/vote", methods=["POST"])
@@ -189,8 +224,18 @@ def vote():
         game_service.submit_vote(room_id, user_id, target)
         
         return jsonify({"code": 200, "message": "vote recorded", "data": {}})
+    except RoomNotFoundException as e:
+        current_app.logger.warning(f"Room not found: {room_id}")
+        return jsonify({"code": 404, "message": "房间不存在", "data": {}}), 404
+    except GameNotStartedError as e:
+        current_app.logger.warning(f"Game not started: {str(e)}")
+        return jsonify({"code": 400, "message": "游戏尚未开始", "data": {}}), 400
+    except InvalidPlayerStateError as e:
+        current_app.logger.warning(f"Invalid player state: {str(e)}")
+        return jsonify({"code": 400, "message": str(e), "data": {}}), 400
     except Exception as e:
-        return jsonify({"code": 500, "message": f"Vote failed: {str(e)}", "data": {}}), 500
+        current_app.logger.exception(f"Vote failed: {str(e)}")
+        return jsonify({"code": 500, "message": "系统繁忙，请稍后重试", "data": {}}), 500
 
 
 @api_bp.route("/game/sync/<room_id>", methods=["GET"])
