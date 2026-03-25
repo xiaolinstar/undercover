@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "github": {
+      "name": "Github",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=github",
+      "source": "skillhub",
+      "version": "1.0.0"
+    },
+    "nano-banana-pro": {
+      "name": "Nano Banana Pro",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=nano-banana-pro",
+      "source": "skillhub",
+      "version": "1.0.1"
+    },
+    "tavily-search": {
+      "name": "Tavily Web Search",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=tavily-search",
+      "source": "skillhub",
+      "version": "1.0.0"
+    },
+    "flask": {
+      "name": "Flask",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=flask",
+      "source": "skillhub",
+      "version": "1.0.0"
+    },
+    "backend": {
+      "name": "Backend",
+      "zip_url": "https://lightmake.site/api/v1/download?slug=backend",
+      "source": "skillhub",
+      "version": "1.0.0"
+    }
+  }
+}
