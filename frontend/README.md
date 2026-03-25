@@ -75,23 +75,23 @@ undercover/
 
 ### 安装步骤
 
-1. **克隆项目**
+**克隆项目**:
 ```bash
 git clone https://github.com/xiaolinstar/undercover.git
 cd undercover
 ```
 
-2. **安装依赖**
+**安装依赖**:
 ```bash
 npm install
 ```
 
-3. **用微信开发者工具打开项目**
-   - 选择项目目录
-   - 填写小程序 AppID: `wxabbdd9d9c1d338ba`
+**用微信开发者工具打开项目**:
+- 选择项目目录
+- 填写小程序 AppID: `wxabbdd9d9c1d338ba`
 
-4. **开发模式配置**
-   - 勾选"不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书"
+**开发模式配置**:
+- 勾选"不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书"
 
 ---
 
@@ -129,19 +129,19 @@ git push origin feature/功能名称
 
 ### 开发建议
 
-1. **代码规范**
-   - 使用 TypeScript 编写代码
-   - 遵循 ESLint 规则
-   - 提交前运行测试
+**代码规范**:
+- 使用 TypeScript 编写代码
+- 遵循 ESLint 规则
+- 提交前运行测试
 
-2. **Git 提交规范**
-   - `feat`: 新功能
-   - `fix`: 修复 bug
-   - `docs`: 文档更新
-   - `style`: 代码格式调整
-   - `refactor`: 重构
-   - `test`: 测试相关
-   - `chore`: 构建/工具链相关
+**Git 提交规范**:
+- `feat`: 新功能
+- `fix`: 修复 bug
+- `docs`: 文档更新
+- `style`: 代码格式调整
+- `refactor`: 重构
+- `test`: 测试相关
+- `chore`: 构建/工具链相关
 
 ---
 

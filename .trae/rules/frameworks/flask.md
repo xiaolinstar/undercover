@@ -27,6 +27,7 @@ project/
 ├── extensions.py           # Flask 扩展初始化
 ├── api/                    # API 蓝图和接口层
 ├── config/                 # 配置管理
+├── docs/                   # 开发文档（需求、待办、规划等）
 ├── models/                 # 数据模型层
 ├── repositories/           # 数据访问层（可选）
 ├── services/               # 业务逻辑层（可选）
