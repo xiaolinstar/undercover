@@ -60,6 +60,7 @@ from backend.exceptions.server import (
 BaseGameException = BaseAppException
 DomainException = BusinessException
 InfrastructureException = ServerException
+RoomNotFoundException = RoomNotFoundError
 
 __all__ = [
     # 基础分类
@@ -75,6 +76,7 @@ __all__ = [
     # 客户端
     'ValidationException', 'InvalidInputError', 'InvalidCommandError',
     'ResourceNotFoundError', 'RoomNotFoundError', 'UserNotFoundError',
+    'RoomNotFoundException',
 
     # 业务: 房间
     'RoomException', 'RoomFullError', 'RoomStateError', 'RoomPermissionError', 'InvalidStateTransitionError',

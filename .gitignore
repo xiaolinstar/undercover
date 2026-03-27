@@ -11,3 +11,10 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Environment variables
+.env.*
+backend/.env.*
+
+# Exceptions (allow .env.example)
+!backend/.env.example

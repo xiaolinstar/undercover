@@ -19,12 +19,20 @@ if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
 # 设置环境变量，确保 .env 文件被正确加载
-# 无论从哪个目录运行，都指向 backend 目录下的 .env 文件
-env_file = backend_dir / ".env"
-if env_file.exists():
-    os.environ.setdefault("ENV_FILE", str(env_file))
+# 根据环境加载对应的环境变量文件
+env_files = [
+    backend_dir / ".env.development",
+    backend_dir / ".env.staging",
+    backend_dir / ".env.production",
+    backend_dir / ".env",
+]
+for env_file in env_files:
+    if env_file.exists():
+        os.environ.setdefault("ENV_FILE", str(env_file))
+        break
 
 from backend.app_factory import AppFactory
+from backend.config.settings import settings
 
 def main():
     """启动应用"""

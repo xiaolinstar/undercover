@@ -27,6 +27,10 @@ env/
 
 # Environment
 .env
+.env.*
+
+# Exceptions (allow .env.example)
+!.env.example
 
 # IDE
 .idea/

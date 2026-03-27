@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     SNOWFLAKE_MACHINE_ID: int = 0  # 机器ID，范围0-1023，用于雪花算法
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=".env.development",
         env_file_encoding="utf-8",
         extra="ignore",
     )

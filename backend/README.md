@@ -94,12 +94,18 @@
 本项目支持两种启动方式，推荐使用 **模块模式**：
 
 ```bash
-# 启动依赖（Redis）
-docker compose -f docker-compose-dev.yml up -d
+# 1. 创建开发环境变量文件
+cp .env.example .env.development
 
-# 安装依赖
+# 2. 启动依赖（Redis、MySQL）
+cd ..
+docker compose -f docker-compose.dev.yml up -d
+cd backend
+
+# 3. 安装依赖
 pip install -r requirements.txt
 
+# 4. 启动应用服务
 # 方式 A：最佳实践（模块模式运行）
 python -m src.main
 
@@ -107,10 +113,60 @@ python -m src.main
 python main.py
 ```
 
+### Docker Compose 常用命令
+
+```bash
+# 启动开发环境（仅依赖服务）
+docker compose -f docker-compose.dev.yml up -d
+
+# 查看服务状态
+docker compose -f docker-compose.dev.yml ps
+
+# 查看日志
+docker compose -f docker-compose.dev.yml logs -f
+
+# 停止服务
+docker compose -f docker-compose.dev.yml down
+
+# 重启服务
+docker compose -f docker-compose.dev.yml restart
+
+# 进入容器
+docker exec -it undercover-backend-dev bash
+```
+
 ### 2. Docker Compose 全栈部署
 
 ```bash
-docker-compose up -d
+# 1. 创建对应环境变量文件
+cp .env.example .env.staging  # 或 .env.production
+
+# 2. 启动所有服务
+cd ..
+docker compose --env-file backend/.env.staging up -d
+cd backend
+```
+
+### Docker Compose 生产环境命令
+
+```bash
+# 启动生产环境
+docker compose up -d
+
+# 查看服务状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+
+# 重启服务
+docker compose restart
+
+# 进入容器
+docker exec -it undercover-app bash
 ```
 
 ### 3. 多环境生产部署 (Kubernetes)
@@ -147,8 +203,34 @@ pip install -r requirements.txt
 # 运行所有测试
 python -m pytest tests/
 
+# 运行单元测试
+python -m pytest tests/unit/ -v
+
+# 运行集成测试
+python -m pytest tests/integration/ -v
+
 # 生成覆盖率报告
 python -m pytest tests/ --cov=src --cov-report=term-missing
+
+# 生成 HTML 覆盖率报告
+python -m pytest tests/ --cov=src --cov-report=html
+# 查看报告：open htmlcov/index.html
+
+# 显示详细输出
+python -m pytest tests/ -v --tb=short
+
+# 运行特定测试文件
+python -m pytest tests/unit/test_game_service.py -v
+
+# 运行特定测试函数
+python -m pytest tests/unit/test_game_service.py::test_create_room -v
+```
+
+### 导入词库数据
+
+```bash
+# 运行词库导入脚本
+python -m utils.import_words
 ```
 
 ## 环境变量配置
