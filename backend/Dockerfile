@@ -7,7 +7,7 @@ WORKDIR /app
 # 设置环境变量
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    FLASK_APP=src.main:app
+    FLASK_APP=wsgi:app
 
 # 复制依赖文件
 COPY requirements.txt .
@@ -22,4 +22,4 @@ COPY . .
 EXPOSE 8000
 
 # 启动命令 (使用 gunicorn)
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "src.main:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "wsgi:app"]

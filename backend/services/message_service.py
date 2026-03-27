@@ -36,7 +36,7 @@ class MessageService:
         except InvalidSignatureException:
             return False
 
-    def handle_wechat_message(self, xml_data: str) -> str:
+    def handle_wechat_message(self, xml_data: str, app_env: str = "dev") -> str:
         """处理微信消息"""
         # 解析消息
         msg = parse_message(xml_data)
@@ -47,9 +47,7 @@ class MessageService:
 
         # 1. 检查是否为测试用户且需要路由到 Staging
         # 仅在生产环境下执行路由逻辑
-        from backend.config.settings import settings
-
-        if settings.APP_ENV == "prod" and self.staging_url:
+        if app_env == "prod" and self.staging_url:
             is_tester = self.redis_client.get(f"tester:{msg.source}")
             if is_tester and msg.type == "text" and msg.content.strip() != "#exit":
                 logger.info(f"路由测试用户 {msg.source} 到 Staging 环境")
@@ -69,7 +67,7 @@ class MessageService:
             content = msg.content.strip().lower()
 
             # 环境切换指令
-            if content == "#debug" and settings.APP_ENV == "prod":
+            if content == "#debug" and app_env == "prod":
                 self.redis_client.setex(f"tester:{msg.source}", 3600, "1")  # 1小时有效期
                 return create_reply(
                     "已切换到 Staging 环境，接下来的指令将由预发布版本处理。发送 #exit 退出。", msg

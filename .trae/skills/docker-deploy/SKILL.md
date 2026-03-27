@@ -37,11 +37,21 @@ cp .env.example .env.production
 
 **环境变量检查**：在特定环境下启动项目时，如果未发现对应的环境变量文件，服务将终止并报错。
 
+**环境自动推导**：
+- 应用启动时会根据配置文件名自动推导环境
+- 如果存在 `.env.production` 文件，则使用生产环境
+- 如果存在 `.env.staging` 文件，则使用预发布环境
+- 如果存在 `.env.development` 文件，则使用开发环境
+- 优先级：production > staging > development
+- 无需手动设置 `APP_ENV` 等环境标识
+
 **重要**：
 - 服务目录下的 `.env.example` 提交到 git 仓库
 - 服务目录下的 `.env.development`、`.env.staging`、`.env.production` 不提交到 git 仓库
 - 在服务目录的 `.gitignore` 中添加：`.env.*`
 - 在项目根目录的 `.gitignore` 中添加：`backend/.env.*`
+
+注意：不要修改 `.env.development`、`.env.staging`、`.env.production` 中的内容，仅修改参数值。
 
 ## 部署命令
 
@@ -91,6 +101,7 @@ cd backend && ./mvnw spring-boot:run
 - 所有服务使用 Docker 容器
 - 模拟生产环境配置
 - 用于测试验证
+- 应用根据配置文件名自动推导环境
 
 **部署步骤**：
 
@@ -116,6 +127,7 @@ docker compose --env-file backend/.env.staging up -d
 - 所有服务使用 Docker 容器
 - 使用强密码和严格的安全配置
 - 启用 HTTPS 和访问限制
+- 应用根据配置文件名自动推导环境
 
 **部署步骤**：
 
@@ -177,6 +189,62 @@ docker compose exec app bash
 开发环境配置，仅包含依赖服务（数据库、缓存等）。
 
 适用于开发环境，应用服务在本地运行。
+
+## 环境自动推导实现
+
+### 实现原理
+
+应用启动时会自动检测配置文件，并根据文件名推导运行环境：
+
+```python
+def get_env_from_config_file():
+    """根据配置文件名推导环境"""
+    backend_dir = Path(__file__).parent
+    
+    # 检查环境变量文件是否存在
+    env_files = [
+        (".env.production", "prod"),
+        (".env.staging", "staging"),
+        (".env.development", "dev"),
+    ]
+    
+    for env_file, env in env_files:
+        env_file_path = backend_dir / env_file
+        if env_file_path.exists():
+            return env
+    
+    return "dev"
+```
+
+### 优先级
+
+1. 如果存在 `.env.production` 文件，则使用生产环境
+2. 如果存在 `.env.staging` 文件，则使用预发布环境
+3. 如果存在 `.env.development` 文件，则使用开发环境
+4. 如果都不存在，默认使用开发环境
+ 
+### 部署示例
+
+**预发布环境**：
+```bash
+# 只需要指定配置文件，应用会从 ENV_FILE 环境变量推导环境
+docker compose --env-file backend/.env.staging up -d
+```
+
+**生产环境**：
+```bash
+# 只需要指定配置文件，应用会从 ENV_FILE 环境变量推导环境
+docker compose --env-file backend/.env.production up -d
+```
+
+### 优势
+
+- **简洁**：只需指定配置文件，无需额外的环境变量
+- **可靠**：不会因为忘记设置环境变量而导致配置错误
+- **直观**：配置文件名直接对应环境
+- **灵活**：仍然支持通过命令行参数手动指定环境
+- **安全**：.env.* 文件不会被打包到镜像中
+- **无冗余**：从 ENV_FILE 推导环境，避免重复配置
 
 ## 环境变量配置
 

@@ -39,22 +39,17 @@
 
 ```text
 .
-├── src/                    # 源代码目录
-│   ├── main.py            # 核心业务入口
-│   ├── app_factory.py     # 应用工厂
-│   ├── models/           # 模型层
-│   │   ├── room.py       # 房间模型
-│   │   └── user.py       # 用户模型
-│   ├── services/         # 服务层
-│   │   ├── game_service.py   # 游戏服务
-│   │   └── message_service.py # 消息服务
-│   ├── repositories/      # 仓储层
-│   │   ├── room_repository.py # 房间仓储
-│   │   └── user_repository.py # 用户仓储
-│   ├── config/           # 配置层
-│   │   └── game_config.py    # 游戏配置
-│   └── utils/            # 工具层
-│       └── word_generator.py # 词语生成器
+├── api/                    # API 路由和接口层
+├── models/                 # 数据模型层
+│   ├── responses/       # 响应模型
+│   └── sql/            # SQL 模型
+├── services/               # 业务逻辑层
+├── repositories/          # 数据访问层
+├── config/                # 配置层
+├── exceptions/            # 异常处理
+├── utils/                 # 工具层
+├── websocket/             # WebSocket 处理
+├── wechat/                # 微信集成
 ├── tests/                  # 测试目录
 │   ├── README.md          # 测试说明
 │   ├── conftest.py        # 测试配置
@@ -63,13 +58,16 @@
 ├── docs/                   # 文档目录
 │   ├── architecture.md    # 架构设计文档
 │   └── state_machine.md   # 状态机文档
-├── Dockerfile             # Docker构建文件
-├── docker-compose.yml     # Docker Compose配置
-├── docker-compose-dev.yml # Docker Compose 开发环境配置
-├── nginx.conf             # Nginx配置
-├── requirements.txt       # Python依赖
-├── .env.example           # 环境变量示例
-└── .gitignore             # Git忽略文件
+├── migrations/             # 数据库迁移
+├── Dockerfile              # Docker 构建文件
+├── docker-compose.yml       # Docker Compose 配置
+├── docker-compose.dev.yml # Docker Compose 开发环境配置
+├── requirements.txt        # Python 依赖
+├── .env.example            # 环境变量示例
+├── .env.development       # 开发环境变量
+├── .env.staging          # 预发布环境变量
+├── .env.production       # 生产环境变量
+└── .gitignore              # Git 忽略文件
 ```
 
 ## 环境区分策略
@@ -79,7 +77,6 @@
 | 环境 | `APP_ENV` | 特点 | 部署方式 |
 | :--- | :--- | :--- | :--- |
 | **开发环境 (Dev)** | `dev`(默认) | 本地 Redis，应用本地运行 | 本地启动 / Docker Compose |
-| **测试环境 (Test)** | `test` | `fakeredis` 内存数据库，无外部依赖 | `pytest` 自动处理 |
 | **预发布 (Staging)** | `staging` | **1:1 模拟生产**，独立 Namespace 隔离 | K8s (`k8s/overlays/staging`) |
 | **生产环境 (Prod)** | `prod` | 线上生产集群，集成 Staging 路由功能 | K8s (`k8s/overlays/prod`) |
 
@@ -91,10 +88,8 @@
 
 ### 1. 开发环境运行（本地）
 
-本项目支持两种启动方式，推荐使用 **模块模式**：
-
 ```bash
-# 1. 创建开发环境变量文件
+# 1. 创建开发环境变量文件（如果不存在）
 cp .env.example .env.development
 
 # 2. 启动依赖（Redis、MySQL）
@@ -106,11 +101,43 @@ cd backend
 pip install -r requirements.txt
 
 # 4. 启动应用服务
-# 方式 A：最佳实践（模块模式运行）
-python -m src.main
-
-# 方式 B：快捷方式（脚本模式运行）
+# 默认根据配置文件自动推导环境
 python main.py
+
+# 手动指定环境（可选）
+python main.py --env dev
+python main.py --env staging
+python main.py --env prod
+```
+
+### 2. 预发布环境部署（Docker）
+
+```bash
+# 1. 创建预发布环境变量文件（如果不存在）
+cp .env.example .env.staging
+
+# 2. 修改 .env.staging 中的配置（数据库连接、Redis连接等）
+
+# 3. 构建并启动所有服务
+docker compose --env-file backend/.env.staging up -d --build
+
+# 4. 查看日志
+docker compose logs -f app
+```
+
+### 3. 生产环境部署（Docker）
+
+```bash
+# 1. 创建生产环境变量文件（如果不存在）
+cp .env.example .env.production
+
+# 2. 修改 .env.production 中的配置（数据库连接、Redis连接、密钥等）
+
+# 3. 构建并启动所有服务
+docker compose --env-file backend/.env.production up -d --build
+
+# 4. 查看日志
+docker compose logs -f app
 ```
 
 ### Docker Compose 常用命令
@@ -132,7 +159,7 @@ docker compose -f docker-compose.dev.yml down
 docker compose -f docker-compose.dev.yml restart
 
 # 进入容器
-docker exec -it undercover-backend-dev bash
+docker compose -f docker-compose.dev.yml exec redis bash
 ```
 
 ### 2. Docker Compose 全栈部署

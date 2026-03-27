@@ -6,16 +6,11 @@
 import os
 import sys
 
-os.environ["APP_ENV"] = "test"
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import pytest
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-
-from backend.config.settings import settings
-
-settings.APP_ENV = "test"
-settings.TESTING = True
+from backend.config.settings import Settings
 
 
 @pytest.fixture(scope="session")
@@ -23,7 +18,7 @@ def app_and_socketio():
     """创建应用实例和 SocketIO 实例"""
     from backend.app_factory import AppFactory
 
-    return AppFactory.create_app()
+    return AppFactory.create_app(env="test")
 
 
 @pytest.fixture(scope="session")

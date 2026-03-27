@@ -9,7 +9,6 @@ from flask import Flask
 
 # Import models for migration detection
 from backend.api import api_bp
-from backend.config.settings import settings
 from backend.extensions import db, migrate
 from backend.repositories.room_repository import RoomRepository
 from backend.repositories.user_repository import UserRepository
@@ -29,24 +28,31 @@ class AppFactory:
     """应用工厂类"""
 
     @staticmethod
-    def create_app() -> tuple[Flask, any]:
+    def create_app(env: str = None) -> tuple[Flask, any]:
         """
         创建Flask应用
+        
+        Args:
+            env: 运行环境 (dev, staging, prod)，如果为 None 则自动推导
         
         Returns:
             tuple: (app, socketio) - Flask应用实例和SocketIO实例
         """
+        # 根据环境参数创建 Settings
+        from backend.config.settings import Settings
+        settings = Settings.create(env=env)
+        
         app = Flask(__name__)
-
-        # 配置日志
-        app.logger = setup_logger(app.name)
-        app.logger.info(f"Application starting in {settings.APP_ENV} mode")
 
         # 配置应用
         app.config.from_object(settings)
 
         # 添加异常传播配置
         app.config['PROPAGATE_EXCEPTIONS'] = True
+
+        # 配置日志
+        app.logger = setup_logger(app.name)
+        app.logger.info(f"Application starting in {app.config.get('APP_ENV')} mode")
 
         # 初始化扩展
         db.init_app(app)
@@ -60,7 +66,7 @@ class AppFactory:
         # 初始化 SocketIO（单实例模式）
         # 在测试环境下使用threading模式，避免Python 3.13与eventlet的兼容性问题
         async_mode = app.config.get('SOCKETIO_ASYNC_MODE', 'eventlet')
-        if settings.TESTING:
+        if app.config.get('TESTING') or app.config.get('APP_ENV') == 'dev':
             async_mode = 'threading'
         
         socketio.init_app(
@@ -89,7 +95,7 @@ class AppFactory:
         )
 
         # 生产环境校验
-        if settings.APP_ENV == "prod":
+        if app.config.get('APP_ENV') == "prod":
             AppFactory._validate_prod_config(app)
 
         # 初始化服务

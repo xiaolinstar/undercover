@@ -5,7 +5,6 @@
 同时也推荐使用 python -m backend.main
 """
 import sys
-import os
 from pathlib import Path
 
 # 添加项目根目录到 Python 路径
@@ -18,27 +17,13 @@ backend_dir = Path(__file__).parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-# 设置环境变量，确保 .env 文件被正确加载
-# 根据环境加载对应的环境变量文件
-env_files = [
-    backend_dir / ".env.development",
-    backend_dir / ".env.staging",
-    backend_dir / ".env.production",
-    backend_dir / ".env",
-]
-for env_file in env_files:
-    if env_file.exists():
-        os.environ.setdefault("ENV_FILE", str(env_file))
-        break
-
 from backend.app_factory import AppFactory
-from backend.config.settings import settings
 
 def main():
     """启动应用"""
-    app, socketio = AppFactory.create_app()
-    debug_mode = settings.FLASK_DEBUG if hasattr(settings, 'FLASK_DEBUG') else False
-    socketio.run(app, host="0.0.0.0", port=5001, debug=debug_mode)
+    # 开发环境默认使用 dev
+    app, socketio = AppFactory.create_app(env='dev')
+    socketio.run(app, host="0.0.0.0", port=5001, debug=True)
 
 if __name__ == "__main__":
     main()

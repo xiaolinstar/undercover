@@ -26,11 +26,10 @@ ENV/
 env/
 
 # Environment
-.env
-.env.*
-
-# Exceptions (allow .env.example)
-!.env.example
+.env.development
+.env.staging
+.env.production
+.env.test
 
 # IDE
 .idea/
